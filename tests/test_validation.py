@@ -2,11 +2,16 @@
 
 import importlib.util
 from pathlib import Path
+import sys
+import types
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1] / "custom_components" / "local_link_timetables"
+PACKAGE = types.ModuleType("local_link_timetables")
+PACKAGE.__path__ = [str(ROOT)]
+sys.modules.setdefault("local_link_timetables", PACKAGE)
 SPEC = importlib.util.spec_from_file_location(
-    "local_link_validation", ROOT / "validation.py"
+    "local_link_timetables.validation", ROOT / "validation.py"
 )
 assert SPEC is not None and SPEC.loader is not None
 VALIDATION = importlib.util.module_from_spec(SPEC)
