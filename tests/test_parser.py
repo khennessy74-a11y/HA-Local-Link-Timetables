@@ -17,6 +17,7 @@ SPEC.loader.exec_module(PARSER)
 TimetableParseError = PARSER.TimetableParseError
 AmbiguousTimetableError = PARSER.AmbiguousTimetableError
 parse_departures = PARSER.parse_departures
+parse_holiday_departures = PARSER.parse_holiday_departures
 
 
 class TimetableParserTests(unittest.TestCase):
@@ -438,6 +439,39 @@ class TimetableParserTests(unittest.TestCase):
         schedule = PARSER.parse_weekday_departures(html, "Shared Stop", "Outbound")
         self.assertEqual(schedule[0], ["06:30"])
         self.assertEqual(schedule[5], [])
+
+
+    def test_public_holiday_column_is_extracted_separately(self):
+        html = """
+        <table>
+          <tr><th>Stop Name</th><th>Mon–Fri</th><th>Mon–Sun &amp; Public Holidays</th></tr>
+          <tr><td>Enfield</td><td>07:00</td><td>07:30 · 10:10 · 12:10</td></tr>
+        </table>
+        """
+        self.assertEqual(
+            parse_holiday_departures(
+                html, "Enfield", "Mon–Sun & Public Holidays"
+            ),
+            ["07:30", "10:10", "12:10"],
+        )
+
+    def test_holiday_column_requires_explicit_holiday_label(self):
+        with self.assertRaises(TimetableParseError):
+            parse_holiday_departures(
+                "<table><tr><th>Mon–Fri</th></tr><tr><td>07:00</td></tr></table>",
+                "Enfield",
+                "Mon–Fri",
+            )
+
+    def test_missing_holiday_departures_fails_safely(self):
+        html = """
+        <table><tr><th>Stop Name</th><th>Mon–Sun &amp; Public Holidays</th></tr>
+        <tr><td>Enfield</td><td>—</td></tr></table>
+        """
+        with self.assertRaises(TimetableParseError):
+            parse_holiday_departures(
+                html, "Enfield", "Mon–Sun & Public Holidays"
+            )
 
 
 if __name__ == "__main__":
