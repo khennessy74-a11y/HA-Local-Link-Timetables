@@ -21,16 +21,23 @@ from .const import (
     WEEKDAY_OPTIONS,
 )
 from .parser import AmbiguousTimetableError, TimetableParseError, parse_departures
+from .route_index import INDEX_URL, parse_route_index
 
 
-def _config_schema(defaults: dict) -> vol.Schema:
+def _config_schema(defaults: dict, route_options: list[dict[str, str]] | None = None) -> vol.Schema:
     """Build the setup/options form using existing values as defaults."""
     return vol.Schema(
         {
             vol.Required(
                 CONF_URL,
                 default=defaults.get(CONF_URL, "https://locallinklmf.ie/tfi-route-188/"),
-            ): str,
+            ): (
+                selector.SelectSelector(
+                    selector.SelectSelectorConfig(options=route_options)
+                )
+                if route_options
+                else str
+            ),
             vol.Required(CONF_STOP_NAME, default=defaults.get(CONF_STOP_NAME, "")): str,
             vol.Optional(CONF_DIRECTION_HINT, default=defaults.get(CONF_DIRECTION_HINT, "")): str,
             vol.Optional(CONF_SERVICE_COLUMN, default=defaults.get(CONF_SERVICE_COLUMN, "")): str,
@@ -141,7 +148,19 @@ class LocalLinkTimetablesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
             errors["base"] = error
 
-        schema = _config_schema({})
+        route_options = None
+        try:
+            session = async_get_clientsession(self.hass)
+            async with session.get(INDEX_URL, timeout=20) as response:
+                response.raise_for_status()
+                route_options = parse_route_index(await response.text())
+            if not route_options:
+                errors.setdefault("base", "route_index_unavailable")
+        except Exception:  # noqa: BLE001
+            # Keep manual URL entry available if the published index is unavailable.
+            errors.setdefault("base", "route_index_unavailable")
+
+        schema = _config_schema({}, route_options)
         return self.async_show_form(
             step_id="user",
             data_schema=schema,
