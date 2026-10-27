@@ -295,7 +295,7 @@ def _service_days_from_header(value: str) -> set[int]:
     if "daily" in text:
         return set(range(7))
     tokens = re.findall(
-        r"(?<!\\w)(monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thur|thu|friday|fri|saturday|sat|sunday|sun)(?!\\w)",
+        r"(?<!\w)(monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thur|thu|friday|fri|saturday|sat|sunday|sun)(?!\w)",
         text,
     )
     days = [_DAY_NAMES[token] for token in tokens]
