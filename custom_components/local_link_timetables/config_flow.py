@@ -11,6 +11,8 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     CONF_DIRECTION_HINT,
+    CONF_HOLIDAY_CALENDAR,
+    CONF_HOLIDAY_COLUMN,
     CONF_SERVICE_COLUMN,
     CONF_SERVICE_DAYS,
     CONF_STOP_NAME,
@@ -20,7 +22,7 @@ from .const import (
     DOMAIN,
     WEEKDAY_OPTIONS,
 )
-from .parser import AmbiguousTimetableError, TimetableParseError, parse_departures, parse_weekday_departures
+from .parser import AmbiguousTimetableError, TimetableParseError, parse_departures, parse_holiday_departures, parse_weekday_departures
 from .route_index import INDEX_URL, parse_route_index
 from .stop_index import parse_stop_options
 
@@ -57,7 +59,7 @@ def _details_schema(
                 else str
             ),
             vol.Optional(CONF_DIRECTION_HINT, default=defaults.get(CONF_DIRECTION_HINT, "")): str,
-            vol.Optional(CONF_SERVICE_COLUMN, default=defaults.get(CONF_SERVICE_COLUMN, "")): str,
+            vol.Optional(CONF_SERVICE_COLUMN, default=defaults.get(CONF_SERVICE_COLUMN, "")): str,\n            vol.Optional(CONF_HOLIDAY_COLUMN, default=defaults.get(CONF_HOLIDAY_COLUMN, "")): str,\n            vol.Optional(CONF_HOLIDAY_CALENDAR, default=defaults.get(CONF_HOLIDAY_CALENDAR, "")): selector.EntitySelector(selector.EntitySelectorConfig(domain="calendar")),\n            vol.Optional(CONF_HOLIDAY_COLUMN, default=defaults.get(CONF_HOLIDAY_COLUMN, "")): str,\n            vol.Optional(CONF_HOLIDAY_CALENDAR, default=defaults.get(CONF_HOLIDAY_CALENDAR, "")): selector.EntitySelector(selector.EntitySelectorConfig(domain="calendar")),
             vol.Required(
                 CONF_SERVICE_DAYS,
                 default=defaults.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
