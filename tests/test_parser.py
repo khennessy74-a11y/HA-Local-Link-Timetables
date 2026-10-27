@@ -445,6 +445,33 @@ class TimetableParserTests(unittest.TestCase):
             self.assertEqual(schedule[day], ["06:30", "08:30"])
         self.assertEqual(schedule[5], [])
 
+    def test_weekday_range_accepts_written_to_and_keeps_extra_days(self):
+        html = """
+        <table>
+          <tr><th>Stop Name</th><th>Monday to Friday &amp; Sunday</th></tr>
+          <tr><td>Navan</td><td>06:30 · 08:30</td></tr>
+        </table>
+        """
+        schedule = PARSER.parse_weekday_departures(html, "Navan")
+        self.assertIsNotNone(schedule)
+        for day in (0, 1, 2, 3, 4, 6):
+            self.assertEqual(schedule[day], ["06:30", "08:30"])
+        self.assertEqual(schedule[5], [])
+
+    def test_weekday_range_accepts_through_word(self):
+        html = """
+        <table>
+          <tr><th>Stop Name</th><th>Monday through Friday</th></tr>
+          <tr><td>Navan</td><td>06:30</td></tr>
+        </table>
+        """
+        schedule = PARSER.parse_weekday_departures(html, "Navan")
+        self.assertIsNotNone(schedule)
+        for day in range(5):
+            self.assertEqual(schedule[day], ["06:30"])
+        self.assertEqual(schedule[5], [])
+        self.assertEqual(schedule[6], [])
+
     def test_weekday_schedule_leaves_generic_times_table_unchanged(self):
         html = """
         <table><tr><th>Stop Name</th><th>Times</th></tr>

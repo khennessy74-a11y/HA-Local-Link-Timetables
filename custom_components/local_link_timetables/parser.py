@@ -309,7 +309,10 @@ def _service_days_from_header(value: str) -> set[int]:
 
     # Expand an explicitly written range, retaining any extra named days.
     # For example, "Mon–Fri & Sunday" covers Monday through Friday and Sunday.
-    if len(matches) >= 2 and "-" in text[matches[0].end():matches[1].start()]:
+    if len(matches) >= 2 and re.search(
+        r"(?:-|\bto\b|\bthrough\b|\bthru\b)",
+        text[matches[0].end():matches[1].start()],
+    ):
         start_day = _DAY_NAMES[matches[0].group(1)]
         end_day = _DAY_NAMES[matches[1].group(1)]
         day = start_day
