@@ -8,7 +8,11 @@ _TIME_RE = re.compile(r"([01]?\d|2[0-3]):([0-5]\d)")
 
 
 class TimetableParseError(ValueError):
-    """Raised when a matching stop row cannot be found."""
+    """Raised when a matching stop row cannot be selected safely."""
+
+
+class AmbiguousTimetableError(TimetableParseError):
+    """Raised when a stop appears in multiple different timetable rows."""
 
 
 def _normalise(value: str) -> str:
@@ -42,11 +46,14 @@ class _TableRowParser(HTMLParser):
             self._parts.append(data.strip())
 
 
-def parse_departures(html: str, stop_name: str) -> list[str]:
-    """Extract sorted HH:MM values from the best matching timetable row.
+def parse_departures(
+    html: str, stop_name: str, direction_hint: str | None = None
+) -> list[str]:
+    """Extract times from a row matching the stop and optional row-text hint.
 
-    Stop matching is case-insensitive and ignores repeated whitespace. If the
-    same stop appears in more than one row, prefer the row with most times.
+    Stop and hint matching ignore case and repeated whitespace. When multiple
+    rows match a stop but contain different departures, a hint is required
+    rather than silently choosing a potentially wrong direction.
     """
     if not stop_name.strip():
         raise TimetableParseError("A stop name is required.")
@@ -54,20 +61,33 @@ def parse_departures(html: str, stop_name: str) -> list[str]:
     parser = _TableRowParser()
     parser.feed(html)
     target = _normalise(stop_name)
-    matches: list[tuple[int, list[str]]] = []
+    hint = _normalise(direction_hint or "")
+    matches: list[list[str]] = []
 
     for row in parser.rows:
-        if target not in _normalise(row):
+        normalized_row = _normalise(row)
+        if target not in normalized_row:
+            continue
+        if hint and hint not in normalized_row:
             continue
         times = [f"{int(hour):02d}:{minute}" for hour, minute in _TIME_RE.findall(row)]
         if times:
-            matches.append((len(times), times))
+            matches.append(times)
 
     if not matches:
+        if hint:
+            raise TimetableParseError(
+                f"No timetable row containing stop '{stop_name}', hint '{direction_hint}', and departure times was found."
+            )
         raise TimetableParseError(
             f"No timetable row containing stop '{stop_name}' and departure times was found."
         )
 
-    # Preserve the timetable's listed order; do not sort, as some pages can
-    # list special or overnight services in a deliberate order.
-    return max(matches, key=lambda item: item[0])[1]
+    unique_matches = {tuple(times) for times in matches}
+    if len(unique_matches) > 1:
+        raise AmbiguousTimetableError(
+            f"Stop '{stop_name}' appears in multiple rows with different departure times. Add a direction/section hint that appears in the desired row."
+        )
+
+    # Preserve listed order; some pages can list special or overnight services deliberately.
+    return matches[0]
