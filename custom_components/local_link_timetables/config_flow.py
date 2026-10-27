@@ -6,15 +6,15 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers import selector
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     CONF_DIRECTION_HINT,
     CONF_SERVICE_COLUMN,
+    CONF_SERVICE_DAYS,
     CONF_STOP_NAME,
     CONF_URL,
-    CONF_SERVICE_DAYS,
     DEFAULT_NAME,
     DEFAULT_SERVICE_DAYS,
     DOMAIN,
@@ -22,10 +22,11 @@ from .const import (
 )
 from .parser import AmbiguousTimetableError, TimetableParseError, parse_departures
 from .route_index import INDEX_URL, parse_route_index
+from .stop_index import parse_stop_options
 
 
 def _config_schema(defaults: dict, route_options: list[dict[str, str]] | None = None) -> vol.Schema:
-    """Build the setup/options form using existing values as defaults."""
+    """Build the route-selection or options form with existing values as defaults."""
     return vol.Schema(
         {
             vol.Required(
@@ -38,6 +39,41 @@ def _config_schema(defaults: dict, route_options: list[dict[str, str]] | None = 
                 if route_options
                 else str
             ),
+        }
+    )
+
+
+def _details_schema(
+    defaults: dict, stop_options: list[dict[str, str]] | None = None
+) -> vol.Schema:
+    """Build the stop and service settings form."""
+    return vol.Schema(
+        {
+            vol.Required(CONF_STOP_NAME, default=defaults.get(CONF_STOP_NAME, "")): (
+                selector.SelectSelector(
+                    selector.SelectSelectorConfig(options=stop_options)
+                )
+                if stop_options
+                else str
+            ),
+            vol.Optional(CONF_DIRECTION_HINT, default=defaults.get(CONF_DIRECTION_HINT, "")): str,
+            vol.Optional(CONF_SERVICE_COLUMN, default=defaults.get(CONF_SERVICE_COLUMN, "")): str,
+            vol.Required(
+                CONF_SERVICE_DAYS,
+                default=defaults.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(options=WEEKDAY_OPTIONS, multiple=True)
+            ),
+            vol.Optional(CONF_NAME, default=defaults.get(CONF_NAME, DEFAULT_NAME)): str,
+        }
+    )
+
+
+def _options_schema(defaults: dict) -> vol.Schema:
+    """Build the editable options form; preserve manual URL and stop entry."""
+    return vol.Schema(
+        {
+            vol.Required(CONF_URL, default=defaults.get(CONF_URL, "https://locallinklmf.ie/tfi-route-188/")): str,
             vol.Required(CONF_STOP_NAME, default=defaults.get(CONF_STOP_NAME, "")): str,
             vol.Optional(CONF_DIRECTION_HINT, default=defaults.get(CONF_DIRECTION_HINT, "")): str,
             vol.Optional(CONF_SERVICE_COLUMN, default=defaults.get(CONF_SERVICE_COLUMN, "")): str,
@@ -84,6 +120,14 @@ def _valid_timetable_url(url: str) -> bool:
     )
 
 
+async def _fetch_page(hass: HomeAssistant, url: str) -> str:
+    """Fetch a public Local Link page using Home Assistant's shared session."""
+    session = async_get_clientsession(hass)
+    async with session.get(url, timeout=20) as response:
+        response.raise_for_status()
+        return await response.text()
+
+
 async def _validate_input(hass: HomeAssistant, data: dict) -> str | None:
     """Validate the URL, stop, and optional direction hint against the live page."""
     url = data[CONF_URL].strip()
@@ -95,10 +139,7 @@ async def _validate_input(hass: HomeAssistant, data: dict) -> str | None:
         return "invalid_url"
 
     try:
-        session = async_get_clientsession(hass)
-        async with session.get(url, timeout=20) as response:
-            response.raise_for_status()
-            html = await response.text()
+        html = await _fetch_page(hass, url)
         parse_departures(
             html,
             data[CONF_STOP_NAME],
@@ -120,54 +161,72 @@ class LocalLinkTimetablesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
 
     async def async_step_user(self, user_input: dict | None = None):
-        """Configure a route page and stop."""
+        """Select a route from the published index."""
         errors: dict[str, str] = {}
+        route_options = None
+        try:
+            route_options = parse_route_index(await _fetch_page(self.hass, INDEX_URL))
+            if not route_options:
+                errors["base"] = "route_index_unavailable"
+        except Exception:  # noqa: BLE001
+            errors["base"] = "route_index_unavailable"
+
         if user_input is not None:
-            user_input = _clean_input(user_input)
-            error = await _validate_input(self.hass, user_input)
+            url = str(user_input.get(CONF_URL, "")).strip()
+            if not _valid_timetable_url(url):
+                errors["base"] = "invalid_url"
+            else:
+                self._selected_url = url
+                return await self.async_step_details()
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=_config_schema({}, route_options),
+            errors=errors,
+            description_placeholders={"example": "https://locallinklmf.ie/tfi-route-188/"},
+        )
+
+    async def async_step_details(self, user_input: dict | None = None):
+        """Discover stops for the chosen route, then validate and save."""
+        errors: dict[str, str] = {}
+        url = getattr(self, "_selected_url", "https://locallinklmf.ie/tfi-route-188/")
+        stop_options = None
+        try:
+            stop_options = parse_stop_options(await _fetch_page(self.hass, url))
+            if not stop_options:
+                errors["base"] = "stop_list_unavailable"
+        except Exception:  # noqa: BLE001
+            errors["base"] = "stop_list_unavailable"
+
+        if user_input is not None:
+            data = _clean_input({**user_input, CONF_URL: url})
+            error = await _validate_input(self.hass, data)
             if error is None:
-                url = user_input[CONF_URL].strip()
-                stop_name = user_input[CONF_STOP_NAME].strip()
-                direction_hint = user_input.get(CONF_DIRECTION_HINT, "").strip()
-                service_column = user_input.get(CONF_SERVICE_COLUMN, "").strip()
                 await self.async_set_unique_id(
-                    f"{url}|{stop_name.casefold()}|{direction_hint.casefold()}|{service_column.casefold()}"
+                    f"{url}|{data[CONF_STOP_NAME].casefold()}|"
+                    f"{data[CONF_DIRECTION_HINT].casefold()}|"
+                    f"{data[CONF_SERVICE_COLUMN].casefold()}"
                 )
                 self._abort_if_unique_id_configured()
-                name = user_input.get(CONF_NAME) or stop_name
+                name = data.get(CONF_NAME) or data[CONF_STOP_NAME]
                 return self.async_create_entry(
                     title=name,
                     data={
                         CONF_URL: url,
-                        CONF_STOP_NAME: stop_name,
-                        CONF_DIRECTION_HINT: direction_hint,
-                        CONF_SERVICE_COLUMN: service_column,
-                        CONF_SERVICE_DAYS: user_input.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
+                        CONF_STOP_NAME: data[CONF_STOP_NAME],
+                        CONF_DIRECTION_HINT: data[CONF_DIRECTION_HINT],
+                        CONF_SERVICE_COLUMN: data[CONF_SERVICE_COLUMN],
+                        CONF_SERVICE_DAYS: data[CONF_SERVICE_DAYS],
                         CONF_NAME: name,
                     },
                 )
             errors["base"] = error
 
-        route_options = None
-        try:
-            session = async_get_clientsession(self.hass)
-            async with session.get(INDEX_URL, timeout=20) as response:
-                response.raise_for_status()
-                route_options = parse_route_index(await response.text())
-            if not route_options:
-                errors.setdefault("base", "route_index_unavailable")
-        except Exception:  # noqa: BLE001
-            # Keep manual URL entry available if the published index is unavailable.
-            errors.setdefault("base", "route_index_unavailable")
-
-        schema = _config_schema({}, route_options)
         return self.async_show_form(
-            step_id="user",
-            data_schema=schema,
+            step_id="details",
+            data_schema=_details_schema({}, stop_options),
             errors=errors,
-            description_placeholders={
-                "example": "https://locallinklmf.ie/tfi-route-188/"
-            },
+            description_placeholders={"url": url},
         )
 
     @staticmethod
@@ -204,9 +263,7 @@ class LocalLinkTimetablesOptionsFlow(config_entries.OptionsFlow):
         defaults = {**self.config_entry.data, **self.config_entry.options}
         return self.async_show_form(
             step_id="init",
-            data_schema=_config_schema(defaults),
+            data_schema=_options_schema(defaults),
             errors=errors,
-            description_placeholders={
-                "example": "https://locallinklmf.ie/tfi-route-188/"
-            },
+            description_placeholders={"example": "https://locallinklmf.ie/tfi-route-188/"},
         )
