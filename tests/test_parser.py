@@ -90,6 +90,34 @@ class TimetableParserTests(unittest.TestCase):
             ["09:15", "13:00", "16:00"],
         )
 
+
+    def test_service_column_selects_only_matching_departures(self):
+        html = """
+        <h2>Enfield to Navan</h2>
+        <table>
+          <tr><th>Stop Name</th><th>Stop Location</th><th>Mon–Fri</th><th>Mon–Sun &amp; Public Holidays</th></tr>
+          <tr><td>Enfield</td><td>Street Side Café</td><td>07:00</td><td>07:30 · 10:10 · 12:10</td></tr>
+        </table>
+        """
+        self.assertEqual(
+            parse_departures(html, "Enfield", service_column_hint="Mon–Fri"),
+            ["07:00"],
+        )
+        self.assertEqual(
+            parse_departures(html, "Enfield", service_column_hint="Mon–Sun & Public Holidays"),
+            ["07:30", "10:10", "12:10"],
+        )
+
+    def test_unknown_service_column_raises(self):
+        html = """
+        <table>
+          <tr><th>Stop Name</th><th>Mon–Fri</th></tr>
+          <tr><td>Enfield</td><td>07:00</td></tr>
+        </table>
+        """
+        with self.assertRaises(TimetableParseError):
+            parse_departures(html, "Enfield", service_column_hint="Sunday only")
+
     def test_missing_stop_raises(self):
         with self.assertRaises(TimetableParseError):
             parse_departures(
