@@ -298,24 +298,29 @@ def _service_days_from_header(value: str) -> set[int]:
     text = _normalise(value).replace("–", "-").replace("—", "-")
     if "daily" in text:
         return set(range(7))
-    tokens = re.findall(
-        r"(?<!\w)(monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thur|thu|friday|fri|saturday|sat|sunday|sun)(?!\w)",
-        text,
+    day_pattern = (
+        r"(?<!\\w)(monday|mon|tuesday|tues|tue|wednesday|wed|"
+        r"thursday|thurs|thur|thu|friday|fri|saturday|sat|sunday|sun)(?!\\w)"
     )
-    days = [_DAY_NAMES[token] for token in tokens]
-    if len(days) >= 2 and "-" in text:
-        start, end = days[0], days[1]
-        covered = set()
-        day = start
+    matches = list(re.finditer(day_pattern, text))
+    if not matches:
+        return set()
+    days = {_DAY_NAMES[match.group(1)] for match in matches}
+
+    # Expand an explicitly written range, retaining any extra named days.
+    # For example, "Mon–Fri & Sunday" covers Monday through Friday and Sunday.
+    if len(matches) >= 2 and "-" in text[matches[0].end():matches[1].start()]:
+        start_day = _DAY_NAMES[matches[0].group(1)]
+        end_day = _DAY_NAMES[matches[1].group(1)]
+        day = start_day
         while True:
-            covered.add(day)
-            if day == end:
+            days.add(day)
+            if day == end_day:
                 break
             day = (day + 1) % 7
-            if len(covered) == 7:
+            if len(days) == 7:
                 break
-        return covered
-    return set(days)
+    return days
 
 
 def parse_weekday_departures(
