@@ -299,8 +299,8 @@ def _service_days_from_header(value: str) -> set[int]:
     if "daily" in text:
         return set(range(7))
     day_pattern = (
-        r"(?<!\\w)(monday|mon|tuesday|tues|tue|wednesday|wed|"
-        r"thursday|thurs|thur|thu|friday|fri|saturday|sat|sunday|sun)(?!\\w)"
+        r"(?<!\w)(monday|mon|tuesday|tues|tue|wednesday|wed|"
+        r"thursday|thurs|thur|thu|friday|fri|saturday|sat|sunday|sun)(?!\w)"
     )
     matches = list(re.finditer(day_pattern, text))
     if not matches:
