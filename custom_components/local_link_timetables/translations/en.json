@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add a Local Link timetable",
+        "description": "Enter the published Local Link timetable page and the stop name exactly as shown on the page.",
+        "data": {
+          "url": "Timetable page URL",
+          "stop_name": "Stop name",
+          "name": "Friendly name"
+        }
+      }
+    },
+    "error": {
+      "invalid_url": "Use an HTTPS timetable page hosted on locallinklmf.ie.",
+      "stop_not_found": "No timetable row with departure times was found for that stop.",
+      "cannot_connect": "Could not load the timetable page. Check the URL and try again."
+    },
+    "abort": {
+      "already_configured": "This timetable page and stop are already configured."
+    }
+  }
+}
