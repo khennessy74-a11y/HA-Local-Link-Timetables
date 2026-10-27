@@ -2,10 +2,16 @@
   "config": {
     "step": {
       "user": {
-        "title": "Add a Local Link timetable",
-        "description": "Enter the published Local Link timetable page and stop name. Select the days this configured timetable operates. For pages with separate timetable columns, enter the exact service column heading (for example Mon–Fri or Mon–Sun & Public Holidays). If the stop appears more than once, add text from the desired direction/section row.",
+        "title": "Choose a Local Link route",
+        "description": "Select a route from the published Local Link timetable index. If the index is unavailable, enter the timetable URL manually.",
         "data": {
-          "url": "Timetable page URL",
+          "url": "Timetable page URL"
+        }
+      },
+      "details": {
+        "title": "Choose a stop",
+        "description": "Stops are discovered from the selected timetable where possible. If discovery is unavailable, enter the stop name manually. Select the operating days and optionally narrow the timetable by direction or service column.",
+        "data": {
           "stop_name": "Stop name",
           "direction_hint": "Direction / section text (optional)",
           "service_column": "Service column header (optional, e.g. Mon–Fri)",
@@ -19,7 +25,8 @@
       "stop_not_found": "No timetable row with departure times matched that stop and direction text.",
       "ambiguous_stop": "This stop has different times in multiple rows. Enter direction/section text that appears in the desired row.",
       "cannot_connect": "Could not load the timetable page. Check the URL and try again.",
-      "service_days": "Select at least one day of the week."
+      "service_days": "Select at least one day of the week.",
+      "stop_list_unavailable": "Could not discover stop names from this page. You can still type the stop name manually."
     },
     "abort": {
       "already_configured": "This timetable page, stop, and direction are already configured."
