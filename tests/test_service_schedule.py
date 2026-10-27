@@ -59,6 +59,32 @@ class ServiceScheduleTests(unittest.TestCase):
             ("08:00", 1, "2026-10-26"),
         )
 
+    def test_weekday_specific_schedule_uses_the_departures_for_that_day(self):
+        schedule = {
+            0: ["06:30", "08:00"],
+            5: ["09:15"],
+            6: ["10:45"],
+        }
+        self.assertEqual(
+            next_departure(schedule, datetime(2026, 10, 31, 8, 0), ["0", "5", "6"]),
+            ("09:15", 75, "2026-10-31"),
+        )
+
+    def test_weekday_specific_schedule_skips_days_with_no_schedule(self):
+        schedule = {0: ["06:30"], 5: ["09:15"]}
+        # Sunday has no configured schedule, so next service is Monday.
+        self.assertEqual(
+            next_departure(schedule, datetime(2026, 11, 1, 8, 0), ["0", "5", "6"]),
+            ("06:30", 1320, "2026-11-02"),
+        )
+
+    def test_weekday_specific_schedule_does_not_reuse_weekday_times_on_sunday(self):
+        schedule = {0: ["06:30"], 5: ["09:15"], 6: []}
+        self.assertEqual(
+            next_departure(schedule, datetime(2026, 11, 1, 8, 0), ["0", "5", "6"], search_days=0),
+            (None, None, None),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
