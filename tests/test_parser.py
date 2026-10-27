@@ -1,11 +1,21 @@
-"""Unit tests for the timetable parser."""
+"""Unit tests for the timetable parser, without requiring Home Assistant."""
 
+import importlib.util
+from pathlib import Path
 import unittest
 
-from custom_components.local_link_timetables.parser import (
-    TimetableParseError,
-    parse_departures,
+PARSER_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "custom_components"
+    / "local_link_timetables"
+    / "parser.py"
 )
+SPEC = importlib.util.spec_from_file_location("local_link_timetable_parser", PARSER_PATH)
+assert SPEC is not None and SPEC.loader is not None
+PARSER = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(PARSER)
+TimetableParseError = PARSER.TimetableParseError
+parse_departures = PARSER.parse_departures
 
 
 class TimetableParserTests(unittest.TestCase):
@@ -37,7 +47,10 @@ class TimetableParserTests(unittest.TestCase):
 
     def test_missing_stop_raises(self):
         with self.assertRaises(TimetableParseError):
-            parse_departures("<table><tr><td>Navan</td><td>06:45</td></tr></table>", "Kennedy Road")
+            parse_departures(
+                "<table><tr><td>Navan</td><td>06:45</td></tr></table>",
+                "Kennedy Road",
+            )
 
 
 if __name__ == "__main__":
