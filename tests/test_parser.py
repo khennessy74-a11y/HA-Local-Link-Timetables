@@ -292,5 +292,38 @@ class TimetableParserTests(unittest.TestCase):
             parse_departures(html, "Shared Stop", "Return", "Mon–Fri")
 
 
+    def test_exact_stop_match_does_not_confuse_similarly_named_stops(self):
+        html = """
+        <table>
+          <tr><td>Newtown</td><td>06:15</td></tr>
+          <tr><td>Newtown Cross</td><td>07:25</td></tr>
+        </table>
+        """
+        self.assertEqual(parse_departures(html, "Newtown"), ["06:15"])
+
+    def test_stop_match_is_case_insensitive_and_whitespace_tolerant(self):
+        html = """
+        <table>
+          <tr><td>St. Peter's   Church</td><td>06:15 · 07:25</td></tr>
+        </table>
+        """
+        self.assertEqual(
+            parse_departures(html, "ST. PETER'S Church"),
+            ["06:15", "07:25"],
+        )
+
+    def test_direction_hint_uses_word_boundaries(self):
+        html = """
+        <h2>Outbound</h2>
+        <table><tr><td>Newtown</td><td>06:15</td></tr></table>
+        <h2>Return</h2>
+        <table><tr><td>Newtown</td><td>07:25</td></tr></table>
+        """
+        self.assertEqual(
+            parse_departures(html, "Newtown", "Return"),
+            ["07:25"],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
