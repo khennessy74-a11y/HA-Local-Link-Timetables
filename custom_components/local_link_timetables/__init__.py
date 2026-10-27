@@ -22,7 +22,7 @@ from .const import (
 )
 from .http import fetch_public_page
 from .parser import TimetableParseError, parse_departures, parse_holiday_departures, parse_weekday_departures
-from .service_schedule import holiday_dates_from_response
+from .service_schedule import holiday_dates_from_response, validate_holiday_calendar_response
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -99,15 +99,20 @@ class LocalLinkCoordinator(DataUpdateCoordinator[list[str] | dict[int, list[str]
                 blocking=True,
                 return_response=True,
             )
+            validate_holiday_calendar_response(response, self.holiday_calendar)
             self.holiday_dates = holiday_dates_from_response(
                 response, self.holiday_calendar
             )
         except Exception as err:  # noqa: BLE001
+            # Fail closed: ordinary weekday times may be wrong on a public holiday.
             _LOGGER.warning(
-                "Could not read configured holiday calendar %s: %s",
+                "Could not read configured holiday calendar %s; timetable will be unavailable until it recovers: %s",
                 self.holiday_calendar,
                 err,
             )
+            raise RuntimeError(
+                f"Could not read configured holiday calendar {self.holiday_calendar}"
+            ) from err
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:

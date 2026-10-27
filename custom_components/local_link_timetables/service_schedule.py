@@ -4,8 +4,19 @@ from collections.abc import Mapping, Sequence
 from datetime import date, datetime, timedelta
 
 
+def validate_holiday_calendar_response(response: object, entity_id: str) -> None:
+    """Reject malformed calendar responses instead of treating them as no holidays."""
+    if not isinstance(response, Mapping):
+        raise ValueError("Holiday calendar returned an invalid response.")
+    calendar_data = response.get(entity_id)
+    if not isinstance(calendar_data, Mapping):
+        raise ValueError(f"Holiday calendar response did not include {entity_id}.")
+    if not isinstance(calendar_data.get("events"), list):
+        raise ValueError("Holiday calendar response did not contain an events list.")
+
+
 def holiday_dates_from_response(response: object, entity_id: str) -> set[str]:
-    """Extract valid ISO dates from a Home Assistant calendar service response."""
+    """Extract valid ISO dates from a Home Assistant calendar service response."
     if not isinstance(response, Mapping):
         return set()
     calendar_data = response.get(entity_id, {})

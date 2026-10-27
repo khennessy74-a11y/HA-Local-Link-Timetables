@@ -18,6 +18,7 @@ SPEC.loader.exec_module(SCHEDULE)
 next_departure = SCHEDULE.next_departure
 departures_for_date = SCHEDULE.departures_for_date
 holiday_dates_from_response = SCHEDULE.holiday_dates_from_response
+validate_holiday_calendar_response = SCHEDULE.validate_holiday_calendar_response
 
 
 class ServiceScheduleTests(unittest.TestCase):
@@ -39,6 +40,25 @@ class ServiceScheduleTests(unittest.TestCase):
             holiday_dates_from_response(response, "calendar.public_holidays"),
             {"2026-12-25", "2027-01-01"},
         )
+
+    def test_calendar_response_validation_accepts_valid_empty_calendar(self):
+        validate_holiday_calendar_response(
+            {"calendar.public_holidays": {"events": []}},
+            "calendar.public_holidays",
+        )
+
+    def test_calendar_response_validation_rejects_missing_calendar_or_events(self):
+        for response in (
+            None,
+            {},
+            {"calendar.public_holidays": {}},
+            {"calendar.public_holidays": {"events": "not-a-list"}},
+        ):
+            with self.subTest(response=response):
+                with self.assertRaises(ValueError):
+                    validate_holiday_calendar_response(
+                        response, "calendar.public_holidays"
+                    )
 
     def test_calendar_response_handles_missing_or_malformed_payload(self):
         self.assertEqual(holiday_dates_from_response(None, "calendar.holidays"), set())
