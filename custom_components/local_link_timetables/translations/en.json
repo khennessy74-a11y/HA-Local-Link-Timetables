@@ -3,11 +3,12 @@
     "step": {
       "user": {
         "title": "Add a Local Link timetable",
-        "description": "Enter the published Local Link timetable page and stop name. Select the days this configured timetable operates. If the stop appears more than once, add text from the desired direction/section row.",
+        "description": "Enter the published Local Link timetable page and stop name. Select the days this configured timetable operates. For pages with separate timetable columns, enter the exact service column heading (for example Mon–Fri or Mon–Sun & Public Holidays). If the stop appears more than once, add text from the desired direction/section row.",
         "data": {
           "url": "Timetable page URL",
           "stop_name": "Stop name",
           "direction_hint": "Direction / section text (optional)",
+          "service_column": "Service column header (optional, e.g. Mon–Fri)",
           "name": "Friendly name",
           "service_days": "Days this timetable operates"
         }
