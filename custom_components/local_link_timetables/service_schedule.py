@@ -26,6 +26,39 @@ def holiday_dates_from_response(response: object, entity_id: str) -> set[str]:
     return dates
 
 
+def departures_for_date(
+    times: Sequence[str] | Mapping[int | str, Sequence[str]],
+    service_date: date,
+    service_days: list[str] | set[str] | tuple[str, ...],
+    holiday_dates: set[str] | frozenset[str] | None = None,
+    holiday_times: Sequence[str] | None = None,
+) -> list[str]:
+    """Return the departures for one date, respecting holiday precedence.
+
+    A configured holiday date always uses the holiday timetable, even when
+    that timetable is empty. This prevents ordinary weekday times from being
+    displayed as if they ran on a public holiday.
+    """
+    iso_date = service_date.isoformat()
+    if iso_date in set(holiday_dates or ()):
+        return list(holiday_times or ())
+
+    active_days = {int(day) for day in service_days}
+    if any(day < 0 or day > 6 for day in active_days):
+        raise ValueError("Service days must be weekday numbers from 0 to 6.")
+    weekday = service_date.weekday()
+    if weekday not in active_days:
+        return []
+    if isinstance(times, Mapping):
+        daily_times = list(times.get(weekday, times.get(str(weekday), ())))
+    else:
+        daily_times = list(times)
+    return sorted(
+        daily_times,
+        key=lambda value: int(value[:2]) * 60 + int(value[3:]),
+    )
+
+
 def next_departure(
     times: Sequence[str] | Mapping[int | str, Sequence[str]],
     now: datetime,

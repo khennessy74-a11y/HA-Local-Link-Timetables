@@ -1,7 +1,7 @@
 """Tests for service-day-aware departure calculations."""
 
 import importlib.util
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 import unittest
 
@@ -16,6 +16,7 @@ assert SPEC is not None and SPEC.loader is not None
 SCHEDULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(SCHEDULE)
 next_departure = SCHEDULE.next_departure
+departures_for_date = SCHEDULE.departures_for_date
 holiday_dates_from_response = SCHEDULE.holiday_dates_from_response
 
 
@@ -47,6 +48,44 @@ class ServiceScheduleTests(unittest.TestCase):
                 {"calendar.holidays": {"events": "unexpected"}}, "calendar.holidays"
             ),
             set(),
+        )
+
+    def test_departures_for_date_holiday_override_can_be_empty(self):
+        self.assertEqual(
+            departures_for_date(
+                {0: ["06:30", "08:00"]},
+                date(2026, 10, 26),
+                ["0", "1", "2", "3", "4"],
+                holiday_dates={"2026-10-26"},
+                holiday_times=[],
+            ),
+            [],
+        )
+
+    def test_departures_for_date_uses_holiday_times_even_on_non_service_day(self):
+        self.assertEqual(
+            departures_for_date(
+                {0: ["06:30"]},
+                date(2026, 10, 27),
+                ["0"],
+                holiday_dates={"2026-10-27"},
+                holiday_times=["09:15", "08:30"],
+            ),
+            ["08:30", "09:15"],
+        )
+
+    def test_departures_for_date_respects_weekday_schedule_and_options(self):
+        self.assertEqual(
+            departures_for_date(
+                {0: ["08:00", "06:30"], 5: ["09:15"]},
+                date(2026, 10, 31),
+                ["0", "5"],
+            ),
+            ["09:15"],
+        )
+        self.assertEqual(
+            departures_for_date({0: ["06:30"]}, date(2026, 10, 27), ["0"]),
+            [],
         )
 
     def test_next_departure_today(self):
