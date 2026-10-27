@@ -115,6 +115,10 @@ class _TableRowParser(HTMLParser):
                     )
                     self.table_rows.append({
                         "heading": self._current_heading,
+                        "heading_path": [
+                            self._heading_levels[key]
+                            for key in sorted(self._heading_levels)
+                        ],
                         "table_id": self._current_table_id,
                         "cells": cells,
                         "is_header": header,
@@ -178,6 +182,7 @@ def parse_departures(
     hint = _normalise(direction_hint or "")
     column_hint = (service_column_hint or "").strip()
     matches: list[list[str]] = []
+    matched_table_rows: list[tuple[int, list[str], list[str]]] = []
     exact_stop_exists = any(
         target in [_normalise(cell) for cell in row["cells"]]
         for row in parser.table_rows
@@ -228,7 +233,34 @@ def parse_departures(
                 continue
             times = _times(" ".join(cells))
             if times:
-                matches.append(times)
+                matched_table_rows.append((
+                    table_row["table_id"], times, table_row["heading_path"]
+                ))
+
+        if matched_table_rows:
+            table_ids = [item[0] for item in matched_table_rows]
+            if len(set(table_ids)) == len(table_ids):
+                # Separate Service 1/2/3 tables under one direction heading
+                # represent separate journeys and should be combined.
+                paths = [item[2] for item in matched_table_rows]
+                same_service_group = (
+                    len(paths) > 1
+                    and all(len(path) == len(paths[0]) for path in paths)
+                    and all(path[:-1] == paths[0][:-1] for path in paths)
+                    and all(
+                        path[-1].casefold().startswith("service ")
+                        for path in paths
+                    )
+                )
+                if hint and same_service_group:
+                    matches.append([
+                        time for _table_id, times, _path in matched_table_rows
+                        for time in times
+                    ])
+                else:
+                    matches.extend(item[1] for item in matched_table_rows)
+            else:
+                matches.extend(item[1] for item in matched_table_rows)
 
     if not matches:
         extra = f", service column '{service_column_hint}'" if column_hint else ""
