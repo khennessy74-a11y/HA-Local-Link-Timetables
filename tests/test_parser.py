@@ -15,11 +15,12 @@ assert SPEC is not None and SPEC.loader is not None
 PARSER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(PARSER)
 TimetableParseError = PARSER.TimetableParseError
+AmbiguousTimetableError = PARSER.AmbiguousTimetableError
 parse_departures = PARSER.parse_departures
 
 
 class TimetableParserTests(unittest.TestCase):
-    """Test common timetable row formats."""
+    """Test common timetable row formats and duplicate-stop handling."""
 
     def test_route_188_kentstown_church(self):
         html = """
@@ -44,6 +45,28 @@ class TimetableParserTests(unittest.TestCase):
     def test_case_and_whitespace_are_ignored(self):
         html = "<table><tr><td>KENNEDY   ROAD</td><td>06:45 07:58</td></tr></table>"
         self.assertEqual(parse_departures(html, "Kennedy Road"), ["06:45", "07:58"])
+
+    def test_duplicate_stop_with_different_times_requires_hint(self):
+        html = """
+        <table>
+          <tr><td>Direction North</td><td>Kennedy Road</td><td>06:45 07:58</td></tr>
+          <tr><td>Direction South</td><td>Kennedy Road</td><td>08:45 09:58</td></tr>
+        </table>
+        """
+        with self.assertRaises(AmbiguousTimetableError):
+            parse_departures(html, "Kennedy Road")
+
+    def test_direction_hint_selects_matching_row(self):
+        html = """
+        <table>
+          <tr><td>Direction North</td><td>Kennedy Road</td><td>06:45 07:58</td></tr>
+          <tr><td>Direction South</td><td>Kennedy Road</td><td>08:45 09:58</td></tr>
+        </table>
+        """
+        self.assertEqual(
+            parse_departures(html, "Kennedy Road", "south"),
+            ["08:45", "09:58"],
+        )
 
     def test_missing_stop_raises(self):
         with self.assertRaises(TimetableParseError):
