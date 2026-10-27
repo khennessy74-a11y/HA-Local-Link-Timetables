@@ -108,6 +108,19 @@ class TimetableParserTests(unittest.TestCase):
             ["07:30", "10:10", "12:10"],
         )
 
+
+    def test_grouped_service_column_includes_all_journeys(self):
+        html = """
+        <table>
+          <tr><th>Stop Name</th><th colspan="2">Mon–Sat (2 journeys)</th><th>Sunday</th></tr>
+          <tr><td>Navan</td><td>06:30</td><td>07:40</td><td>09:00</td></tr>
+        </table>
+        """
+        self.assertEqual(
+            parse_departures(html, "Navan", service_column_hint="Mon–Sat"),
+            ["06:30", "07:40"],
+        )
+
     def test_unknown_service_column_raises(self):
         html = """
         <table>
