@@ -49,7 +49,9 @@ class LocalLinkCoordinator(DataUpdateCoordinator[list[str]]):
             ) as response:
                 response.raise_for_status()
                 html = await response.text()
-            return parse_departures(\n                html, self.stop_name, self.direction_hint, self.service_column\n            )
+            return parse_departures(
+                html, self.stop_name, self.direction_hint, self.service_column
+            )
         except TimetableParseError as err:
             raise UpdateFailed(str(err)) from err
         except Exception as err:  # noqa: BLE001
