@@ -66,6 +66,7 @@ class _TableRowParser(HTMLParser):
         self._heading_tag: str | None = None
         self._heading_parts: list[str] = []
         self._current_heading = ""
+        self._heading_levels: dict[int, str] = {}
         self._table_depth = 0
         self._table_serial = 0
         self._current_table_id = 0
@@ -123,7 +124,15 @@ class _TableRowParser(HTMLParser):
         if self._heading_tag == tag and tag in self._HEADING_TAGS:
             heading = " ".join(self._heading_parts).strip()
             if heading:
-                self._current_heading = heading
+                level = int(tag[1])
+                self._heading_levels[level] = heading
+                self._heading_levels = {
+                    key: value for key, value in self._heading_levels.items()
+                    if key <= level
+                }
+                self._current_heading = " | ".join(
+                    self._heading_levels[key] for key in sorted(self._heading_levels)
+                )
             self._heading_tag = None
             self._heading_parts = []
 
