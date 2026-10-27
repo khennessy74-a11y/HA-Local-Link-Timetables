@@ -85,7 +85,7 @@ class LocalLinkBaseSensor(CoordinatorEntity[LocalLinkCoordinator], SensorEntity)
     def _next_service_date(self) -> str | None:
         """Return the date of the next departure, if one is scheduled."""
         return next_departure(
-            self._times,
+            self._schedule,
             dt_util.now(),
             self._config.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
         )[2]
