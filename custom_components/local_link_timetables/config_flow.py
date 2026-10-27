@@ -11,6 +11,7 @@ from homeassistant.helpers import selector
 
 from .const import (
     CONF_DIRECTION_HINT,
+    CONF_SERVICE_COLUMN,
     CONF_STOP_NAME,
     CONF_URL,
     CONF_SERVICE_DAYS,
@@ -49,6 +50,7 @@ async def _validate_input(hass: HomeAssistant, data: dict) -> str | None:
             html,
             data[CONF_STOP_NAME],
             data.get(CONF_DIRECTION_HINT, ""),
+            data.get(CONF_SERVICE_COLUMN, ""),
         )
     except AmbiguousTimetableError:
         return "ambiguous_stop"
@@ -73,8 +75,9 @@ class LocalLinkTimetablesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 url = user_input[CONF_URL].strip()
                 stop_name = user_input[CONF_STOP_NAME].strip()
                 direction_hint = user_input.get(CONF_DIRECTION_HINT, "").strip()
+                service_column = user_input.get(CONF_SERVICE_COLUMN, "").strip()
                 await self.async_set_unique_id(
-                    f"{url}|{stop_name.casefold()}|{direction_hint.casefold()}"
+                    f"{url}|{stop_name.casefold()}|{direction_hint.casefold()}|{service_column.casefold()}"
                 )
                 self._abort_if_unique_id_configured()
                 name = user_input.get(CONF_NAME) or stop_name
@@ -84,6 +87,7 @@ class LocalLinkTimetablesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_URL: url,
                         CONF_STOP_NAME: stop_name,
                         CONF_DIRECTION_HINT: direction_hint,
+                        CONF_SERVICE_COLUMN: service_column,
                         CONF_SERVICE_DAYS: user_input.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
                         CONF_NAME: name,
                     },
@@ -95,6 +99,7 @@ class LocalLinkTimetablesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_URL, default="https://locallinklmf.ie/tfi-route-188/"): str,
                 vol.Required(CONF_STOP_NAME): str,
                 vol.Optional(CONF_DIRECTION_HINT, default=""): str,
+                vol.Optional(CONF_SERVICE_COLUMN, default=""): str,
                 vol.Required(CONF_SERVICE_DAYS, default=DEFAULT_SERVICE_DAYS): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=WEEKDAY_OPTIONS,
