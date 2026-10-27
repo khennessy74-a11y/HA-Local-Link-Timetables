@@ -20,7 +20,7 @@ from .const import (
     DOMAIN,
     WEEKDAY_OPTIONS,
 )
-from .parser import AmbiguousTimetableError, TimetableParseError, parse_departures
+from .parser import AmbiguousTimetableError, TimetableParseError, parse_departures, parse_weekday_departures
 from .route_index import INDEX_URL, parse_route_index
 from .stop_index import parse_stop_options
 
@@ -140,6 +140,10 @@ async def _validate_input(hass: HomeAssistant, data: dict) -> str | None:
 
     try:
         html = await _fetch_page(hass, url)
+        if not data.get(CONF_SERVICE_COLUMN, ""):
+            parse_weekday_departures(
+                html, data[CONF_STOP_NAME], data.get(CONF_DIRECTION_HINT, "")
+            )
         parse_departures(
             html,
             data[CONF_STOP_NAME],
