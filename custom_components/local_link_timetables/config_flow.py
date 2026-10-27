@@ -162,16 +162,21 @@ async def _validate_input(hass: HomeAssistant, data: dict) -> str | None:
 
     try:
         html = await _fetch_page(hass, url)
+        weekday_schedule = None
         if not data.get(CONF_SERVICE_COLUMN, ""):
-            parse_weekday_departures(
+            weekday_schedule = parse_weekday_departures(
                 html, data[CONF_STOP_NAME], data.get(CONF_DIRECTION_HINT, "")
             )
-        parse_departures(
-            html,
-            data[CONF_STOP_NAME],
-            data.get(CONF_DIRECTION_HINT, ""),
-            data.get(CONF_SERVICE_COLUMN, ""),
-        )
+        # Weekday-aware parsing is the runtime path for labelled service
+        # columns. Avoid rejecting a valid schedule by then running legacy
+        # flat-row parsing, which can see those distinct columns as ambiguous.
+        if weekday_schedule is None or data.get(CONF_SERVICE_COLUMN, ""):
+            parse_departures(
+                html,
+                data[CONF_STOP_NAME],
+                data.get(CONF_DIRECTION_HINT, ""),
+                data.get(CONF_SERVICE_COLUMN, ""),
+            )
         if data.get(CONF_HOLIDAY_COLUMN):
             parse_holiday_departures(
                 html, data[CONF_STOP_NAME], data[CONF_HOLIDAY_COLUMN],
