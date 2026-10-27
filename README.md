@@ -24,7 +24,7 @@ This is an independent community project and is not affiliated with or endorsed 
 - [x] Allow an optional service-column heading to select one timetable column
 - [x] Support repeated grouped service headings such as Route 188 journey groups
 - [ ] Automatically choose the correct weekday/weekend/public-holiday column for the current date
-- [ ] Add route/stop discovery so users do not have to type a stop name
+- [x] Discover route URLs from the published Local Link timetable index during setup\n- [ ] Discover stop names from the selected route page so users do not have to type a stop name
 - [ ] Review error handling, diagnostics, and HACS release readiness
 
 ## Development installation
@@ -57,7 +57,7 @@ The source timetable is fetched every 15 minutes. A failed fetch or parse is rep
 
 - The parser supports selecting departure-time cells by service-column heading, including repeated grouped headings such as Route 188 and the different outbound/return column layouts represented by Routes 189 and 195. For simple tables such as LH701, nested direction headings are retained and multiple Service 1/2/3 tables are combined only when a matching direction is explicitly selected. Route 177, 188, 189, 192, 195, and LH701 now have representative layout fixtures. These are fixture-based parser tests, not a guarantee that every live route page is compatible; verify the actual departures for the selected stop and direction.
 - If the same stop appears in multiple rows with different times, setup now fails safely and asks for a direction/section hint. The direction hint can match the stop row or its section heading. The optional service-column hint should match the published header text exactly enough to identify the intended column; if a route has grouped or unusual headers, verify the extracted departures before relying on them.
-- Service days are currently selected manually for one configured list of departure times. The optional service-column field can select a named column such as “Mon–Fri” or “Mon–Sun & Public Holidays”, but the integration does not yet automatically switch columns based on today's weekday or public holidays. Configure one service pattern per entry and do not treat this as automatic public-holiday support.
+- Route selection is discovered from the published timetable index, but stop selection is still manual. The index is fetched during setup; if unavailable, the form falls back to a manual URL field.\n- Service days are currently selected manually for one configured list of departure times. The optional service-column field can select a named column such as “Mon–Fri” or “Mon–Sun & Public Holidays”, but the integration does not yet automatically switch columns based on today's weekday or public holidays. Configure one service pattern per entry and do not treat this as automatic public-holiday support.
 - Timetable data may change on the provider's website. Check the published timetable before travelling.
 
 ## Tests
