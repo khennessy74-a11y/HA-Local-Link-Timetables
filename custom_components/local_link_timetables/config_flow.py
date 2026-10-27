@@ -118,11 +118,14 @@ def _clean_input(data: dict) -> dict:
 
 def _entry_identity(data: dict) -> tuple[str, str, str, str]:
     """Return a normalized identity for duplicate detection across setup and edits."""
+    def normalise(value: object) -> str:
+        return " ".join(str(value or "").casefold().split())
+
     return (
-        data.get(CONF_URL, "").strip().rstrip("/").casefold(),
-        " ".join(data.get(CONF_STOP_NAME, "").casefold().split()),
-        " ".join(data.get(CONF_DIRECTION_HINT, "").casefold().split()),
-        " ".join(data.get(CONF_SERVICE_COLUMN, "").casefold().split()),
+        normalise(data.get(CONF_URL)).rstrip("/"),
+        normalise(data.get(CONF_STOP_NAME)),
+        normalise(data.get(CONF_DIRECTION_HINT)),
+        normalise(data.get(CONF_SERVICE_COLUMN)),
     )
 
 
@@ -238,27 +241,34 @@ class LocalLinkTimetablesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data = _clean_input({**user_input, CONF_URL: url})
             error = await _validate_input(self.hass, data)
             if error is None:
-                await self.async_set_unique_id(
-                    f"{url}|{data[CONF_STOP_NAME].casefold()}|"
-                    f"{data[CONF_DIRECTION_HINT].casefold()}|"
-                    f"{data[CONF_SERVICE_COLUMN].casefold()}"
+                identity = _entry_identity(data)
+                duplicate = any(
+                    _entry_identity({**entry.data, **entry.options}) == identity
+                    for entry in self.hass.config_entries.async_entries(DOMAIN)
                 )
-                self._abort_if_unique_id_configured()
-                name = data.get(CONF_NAME) or data[CONF_STOP_NAME]
-                return self.async_create_entry(
-                    title=name,
-                    data={
-                        CONF_URL: url,
-                        CONF_STOP_NAME: data[CONF_STOP_NAME],
-                        CONF_DIRECTION_HINT: data[CONF_DIRECTION_HINT],
-                        CONF_SERVICE_COLUMN: data[CONF_SERVICE_COLUMN],
-                        CONF_HOLIDAY_COLUMN: data[CONF_HOLIDAY_COLUMN],
-                        CONF_HOLIDAY_CALENDAR: data[CONF_HOLIDAY_CALENDAR],
-                        CONF_SERVICE_DAYS: data[CONF_SERVICE_DAYS],
-                        CONF_NAME: name,
-                    },
-                )
-            errors["base"] = error
+                if duplicate:
+                    errors["base"] = "already_configured"
+                else:
+                    # Also catch entries created by older versions with a
+                    # different unique-ID format.
+                    await self.async_set_unique_id("|".join(identity))
+                    self._abort_if_unique_id_configured()
+                    name = data.get(CONF_NAME) or data[CONF_STOP_NAME]
+                    return self.async_create_entry(
+                        title=name,
+                        data={
+                            CONF_URL: url,
+                            CONF_STOP_NAME: data[CONF_STOP_NAME],
+                            CONF_DIRECTION_HINT: data[CONF_DIRECTION_HINT],
+                            CONF_SERVICE_COLUMN: data[CONF_SERVICE_COLUMN],
+                            CONF_HOLIDAY_COLUMN: data[CONF_HOLIDAY_COLUMN],
+                            CONF_HOLIDAY_CALENDAR: data[CONF_HOLIDAY_CALENDAR],
+                            CONF_SERVICE_DAYS: data[CONF_SERVICE_DAYS],
+                            CONF_NAME: name,
+                        },
+                    )
+            else:
+                errors["base"] = error
 
         return self.async_show_form(
             step_id="details",
