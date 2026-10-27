@@ -7,13 +7,17 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers import selector
 
 from .const import (
     CONF_DIRECTION_HINT,
     CONF_STOP_NAME,
     CONF_URL,
+    CONF_SERVICE_DAYS,
     DEFAULT_NAME,
+    DEFAULT_SERVICE_DAYS,
     DOMAIN,
+    WEEKDAY_OPTIONS,
 )
 from .parser import AmbiguousTimetableError, TimetableParseError, parse_departures
 
@@ -78,6 +82,7 @@ class LocalLinkTimetablesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_URL: url,
                         CONF_STOP_NAME: stop_name,
                         CONF_DIRECTION_HINT: direction_hint,
+                        CONF_SERVICE_DAYS: user_input.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
                         CONF_NAME: name,
                     },
                 )
@@ -88,6 +93,12 @@ class LocalLinkTimetablesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_URL, default="https://locallinklmf.ie/tfi-route-188/"): str,
                 vol.Required(CONF_STOP_NAME): str,
                 vol.Optional(CONF_DIRECTION_HINT, default=""): str,
+                vol.Required(CONF_SERVICE_DAYS, default=DEFAULT_SERVICE_DAYS): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=WEEKDAY_OPTIONS,
+                        multiple=True,
+                    )
+                ),
                 vol.Optional(CONF_NAME, default=DEFAULT_NAME): str,
             }
         )
