@@ -35,7 +35,7 @@ The integration is not yet a stable HACS release.
 2. Restart Home Assistant.
 3. Go to **Settings → Devices & services → Add integration**.
 4. Search for **Local Link Timetables**.
-5. Enter the timetable page URL, stop name as printed on the page, an optional direction/section text, an optional exact service-column heading (for example `Mon–Fri`), the days this configured timetable operates, and a friendly name.
+5. Choose a route, then select a discovered stop (or type it manually if discovery is unavailable), an optional direction/section text, an optional service-column heading (for example `Mon–Fri`), the days this configured timetable operates, and a friendly name.
 
 For initial validation, use the Route 188 page:
 
