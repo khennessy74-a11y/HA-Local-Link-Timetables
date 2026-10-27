@@ -7,6 +7,8 @@ CONF_URL = "url"
 CONF_STOP_NAME = "stop_name"
 CONF_DIRECTION_HINT = "direction_hint"
 CONF_SERVICE_COLUMN = "service_column"
+CONF_HOLIDAY_COLUMN = "holiday_column"
+CONF_HOLIDAY_CALENDAR = "holiday_calendar"
 CONF_SERVICE_DAYS = "service_days"
 CONF_NAME = "name"
 
