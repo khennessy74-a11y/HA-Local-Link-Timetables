@@ -21,39 +21,59 @@ def _normalise(value: str) -> str:
 
 
 class _TableRowParser(HTMLParser):
-    """Collect text from each HTML table row, including nested cell content."""
+    """Collect table rows and the most recent heading for direction context."""
+
+    _HEADING_TAGS = {"h1", "h2", "h3", "h4", "h5", "h6"}
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.rows: list[str] = []
         self._row_depth = 0
         self._parts: list[str] = []
+        self._heading_tag: str | None = None
+        self._heading_parts: list[str] = []
+        self._current_heading = ""
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag.lower() == "tr":
+        tag = tag.lower()
+        if tag == "tr":
             if self._row_depth == 0:
                 self._parts = []
             self._row_depth += 1
+        if tag in self._HEADING_TAGS:
+            self._heading_tag = tag
+            self._heading_parts = []
 
     def handle_endtag(self, tag: str) -> None:
-        if tag.lower() == "tr" and self._row_depth:
+        tag = tag.lower()
+        if tag == "tr" and self._row_depth:
             self._row_depth -= 1
             if self._row_depth == 0:
-                self.rows.append(" ".join(self._parts))
+                row = " ".join(self._parts)
+                # Direction headings often sit outside the timetable table.
+                self.rows.append(f"{self._current_heading} | {row}")
+        if self._heading_tag == tag and tag in self._HEADING_TAGS:
+            heading = " ".join(self._heading_parts).strip()
+            if heading:
+                self._current_heading = heading
+            self._heading_tag = None
+            self._heading_parts = []
 
     def handle_data(self, data: str) -> None:
         if self._row_depth and data.strip():
             self._parts.append(data.strip())
+        if self._heading_tag and data.strip():
+            self._heading_parts.append(data.strip())
 
 
 def parse_departures(
     html: str, stop_name: str, direction_hint: str | None = None
 ) -> list[str]:
-    """Extract times from a row matching the stop and optional row-text hint.
+    """Extract times from a stop row and optionally disambiguate by direction.
 
-    Stop and hint matching ignore case and repeated whitespace. When multiple
-    rows match a stop but contain different departures, a hint is required
-    rather than silently choosing a potentially wrong direction.
+    Supports tightly concatenated times (for example 06:5708:23) and pages
+    using middle-dot separators. Direction hints can match row text or the
+    most recent HTML heading above the row.
     """
     if not stop_name.strip():
         raise TimetableParseError("A stop name is required.")
@@ -89,5 +109,4 @@ def parse_departures(
             f"Stop '{stop_name}' appears in multiple rows with different departure times. Add a direction/section hint that appears in the desired row."
         )
 
-    # Preserve listed order; some pages can list special or overnight services deliberately.
     return matches[0]
