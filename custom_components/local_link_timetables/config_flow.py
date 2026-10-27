@@ -45,6 +45,16 @@ def _config_schema(defaults: dict) -> vol.Schema:
     )
 
 
+def _entry_identity(data: dict) -> tuple[str, str, str, str]:
+    """Return a normalized identity for duplicate detection across setup and edits."""
+    return (
+        data.get(CONF_URL, "").strip().rstrip("/").casefold(),
+        " ".join(data.get(CONF_STOP_NAME, "").casefold().split()),
+        " ".join(data.get(CONF_DIRECTION_HINT, "").casefold().split()),
+        " ".join(data.get(CONF_SERVICE_COLUMN, "").casefold().split()),
+    )
+
+
 def _valid_timetable_url(url: str) -> bool:
     """Only allow public Local Link timetable hosts."""
     parsed = urlparse(url)
@@ -144,7 +154,16 @@ class LocalLinkTimetablesOptionsFlow(config_entries.OptionsFlow):
         if user_input is not None:
             error = await _validate_input(self.hass, user_input)
             if error is None:
-                return self.async_create_entry(title="", data=user_input)
+                identity = _entry_identity(user_input)
+                duplicate = any(
+                    entry.entry_id != self.config_entry.entry_id
+                    and _entry_identity({**entry.data, **entry.options}) == identity
+                    for entry in self.hass.config_entries.async_entries(DOMAIN)
+                )
+                if duplicate:
+                    error = "already_configured"
+                else:
+                    return self.async_create_entry(title="", data=user_input)
             errors["base"] = error
 
         defaults = {**self.config_entry.data, **self.config_entry.options}
