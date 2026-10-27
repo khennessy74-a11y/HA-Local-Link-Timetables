@@ -86,5 +86,55 @@ class ServiceScheduleTests(unittest.TestCase):
         )
 
 
+    def test_public_holiday_schedule_overrides_weekday_schedule(self):
+        # Monday is normally a weekday service, but the calendar marks it
+        # as a public holiday and the holiday timetable takes precedence.
+        self.assertEqual(
+            next_departure(
+                {0: ["06:30", "08:00"], 1: ["07:00"]},
+                datetime(2026, 10, 26, 7, 0),
+                ["0", "1"],
+                holiday_dates={"2026-10-26"},
+                holiday_times=["09:15", "12:00"],
+            ),
+            ("09:15", 135, "2026-10-26"),
+        )
+
+    def test_holiday_schedule_can_operate_when_weekday_is_not_selected(self):
+        self.assertEqual(
+            next_departure(
+                {0: ["06:30"]},
+                datetime(2026, 10, 26, 7, 0),
+                ["0"],
+                holiday_dates={"2026-10-27"},
+                holiday_times=["08:30"],
+            ),
+            ("08:30", 1530, "2026-10-27"),
+        )
+
+    def test_no_holiday_dates_preserves_ordinary_weekday_schedule(self):
+        self.assertEqual(
+            next_departure(
+                {0: ["06:30", "08:00"]},
+                datetime(2026, 10, 26, 7, 0),
+                ["0"],
+                holiday_times=["09:15"],
+            ),
+            ("08:00", 60, "2026-10-26"),
+        )
+
+    def test_empty_holiday_timetable_does_not_fall_back_to_weekday_times(self):
+        self.assertEqual(
+            next_departure(
+                {0: ["06:30"]},
+                datetime(2026, 10, 26, 7, 0),
+                ["0"],
+                holiday_dates={"2026-10-26"},
+                holiday_times=[],
+                search_days=0,
+            ),
+            (None, None, None),
+        )
+
 if __name__ == "__main__":
     unittest.main()
