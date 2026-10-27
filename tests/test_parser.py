@@ -366,5 +366,42 @@ class TimetableParserTests(unittest.TestCase):
             ["09:00"],
         )
 
+
+    def test_route_177_grouped_mon_sat_and_sunday_columns(self):
+        html = """
+        <h2>Ardee → Kells</h2>
+        <table>
+          <tr><th>Stop Name</th><th>Stop Location</th><th>Stop Number</th>
+              <th>Mon-Sat</th><th colspan="4">Monday - Sunday &amp; Public Holidays</th></tr>
+          <tr><td>Ardee Bypass</td><td>Bypass Bus Stop</td><td>152461</td>
+              <td>07:40</td><td>11:30</td><td>14:30</td><td>17:25</td><td>20:45</td></tr>
+        </table>
+        """
+        self.assertEqual(
+            parse_departures(html, "Ardee Bypass", service_column_hint="Mon-Sat"),
+            ["07:40"],
+        )
+        self.assertEqual(
+            parse_departures(
+                html, "Ardee Bypass",
+                service_column_hint="Monday - Sunday & Public Holidays",
+            ),
+            ["11:30", "14:30", "17:25", "20:45"],
+        )
+
+    def test_route_192_times_column(self):
+        html = """
+        <h2>Balbriggan → Swords</h2>
+        <table>
+          <tr><th>Stop Name</th><th>Stop Location</th><th>Stop No.</th><th>Times</th></tr>
+          <tr><td>Balbriggan Station</td><td>Balbriggan Station</td><td>134741</td>
+              <td>06:20 · 07:30 · 09:40 · 11:20 · 13:30 · 15:40 · 17:10 · 19:10 · 21:10 · 22:35</td></tr>
+        </table>
+        """
+        self.assertEqual(
+            parse_departures(html, "Balbriggan Station", "Balbriggan → Swords"),
+            ["06:20", "07:30", "09:40", "11:20", "13:30", "15:40", "17:10", "19:10", "21:10", "22:35"],
+        )
+
 if __name__ == "__main__":
     unittest.main()
