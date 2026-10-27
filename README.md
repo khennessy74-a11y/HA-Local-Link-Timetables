@@ -9,10 +9,11 @@ This is an independent community project and is not affiliated with or endorsed 
 ## Current development status
 
 - [x] Initial Home Assistant integration structure
-- [x] UI setup flow for a timetable URL and stop name
+- [x] UI setup flow for a timetable URL, stop name, and optional direction/section hint
 - [x] Parser for adjacent timetable times such as `06:5708:23`
+- [x] Reject ambiguous duplicate-stop rows instead of silently choosing the row with the most times
 - [x] Next departure, minutes-until, and full-departures sensors
-- [x] Unit tests for the two known Route 188 stop rows
+- [x] Unit tests for both known Route 188 stop rows and duplicate-stop selection
 - [x] GitHub Actions parser test workflow
 - [ ] Verify live Route 188 page structure and both directions
 - [ ] Test multiple other Local Link route pages
@@ -28,13 +29,13 @@ The integration is not yet a stable HACS release.
 2. Restart Home Assistant.
 3. Go to **Settings → Devices & services → Add integration**.
 4. Search for **Local Link Timetables**.
-5. Enter the timetable page URL, stop name as printed on the page, and a friendly name.
+5. Enter the timetable page URL, stop name as printed on the page, an optional direction/section text, and a friendly name.
 
 For initial validation, use the Route 188 page:
 
 `https://locallinklmf.ie/tfi-route-188/`
 
-Example stop names from the known timetable rows are `Kentstown Church` and `Kennedy Road`. The parser validates that it can find a row containing the selected stop and times.
+Example stop names from the known timetable rows are `Kentstown Church` and `Kennedy Road`.
 
 ## Sensors
 
@@ -48,8 +49,8 @@ The source timetable is fetched every 15 minutes. A failed fetch or parse is rep
 
 ## Important limitations
 
-- The first parser targets timetable rows containing a stop name and times. Local Link route pages may use different HTML structures, so compatibility with every route has not yet been established.
-- If the same stop name appears in multiple timetable rows, the current parser chooses the matching row containing the most times. Direction/section disambiguation is a planned improvement.
+- The parser currently extracts times from HTML table rows containing the selected stop. Local Link route pages may use different HTML structures, so compatibility with every route has not yet been established.
+- If the same stop appears in multiple rows with different times, setup now fails safely and asks for a direction/section hint. The hint must appear in the same row as the stop; section headings stored in separate rows are not yet associated with timetable rows.
 - The countdown currently treats the listed times as a repeating daily timetable when all departures for the current day have passed. This is not suitable for routes with different weekday, weekend, or holiday schedules until service-day support is implemented.
 - Timetable data may change on the provider's website. Check the published timetable before travelling.
 
