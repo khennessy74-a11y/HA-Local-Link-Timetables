@@ -18,7 +18,7 @@ This is an independent community project and is not affiliated with or endorsed 
 - [x] Unit tests for both known Route 188 stop rows and duplicate-stop selection
 - [x] GitHub Actions parser test workflow
 - [ ] Verify live Route 188 page structure and both directions
-- [x] Add representative parser tests for Route 189 weekday/holiday columns and Route 195 outbound/return layouts
+- [x] Add representative parser tests for Route 177 grouped weekday/holiday columns, Route 189 weekday/holiday columns, Route 192 simple Times tables, and Route 195 outbound/return layouts
 - [ ] Validate extracted times against every live route page before claiming broad route compatibility
 - [x] Allow the configured timetable to be limited to selected days of the week
 - [x] Allow an optional service-column heading to select one timetable column
@@ -55,7 +55,7 @@ The source timetable is fetched every 15 minutes. A failed fetch or parse is rep
 
 ## Important limitations
 
-- The parser supports selecting departure-time cells by service-column heading, including repeated grouped headings such as Route 188 and the different outbound/return column layouts represented by Routes 189 and 195. For simple tables such as LH701, nested direction headings are retained and multiple Service 1/2/3 tables are combined only when a matching direction is explicitly selected. These are fixture-based parser tests, not a guarantee that every live route page is compatible; verify the actual departures for the selected stop and direction.
+- The parser supports selecting departure-time cells by service-column heading, including repeated grouped headings such as Route 188 and the different outbound/return column layouts represented by Routes 189 and 195. For simple tables such as LH701, nested direction headings are retained and multiple Service 1/2/3 tables are combined only when a matching direction is explicitly selected. Route 177, 188, 189, 192, 195, and LH701 now have representative layout fixtures. These are fixture-based parser tests, not a guarantee that every live route page is compatible; verify the actual departures for the selected stop and direction.
 - If the same stop appears in multiple rows with different times, setup now fails safely and asks for a direction/section hint. The direction hint can match the stop row or its section heading. The optional service-column hint should match the published header text exactly enough to identify the intended column; if a route has grouped or unusual headers, verify the extracted departures before relying on them.
 - Service days are currently selected manually for one configured list of departure times. The optional service-column field can select a named column such as “Mon–Fri” or “Mon–Sun & Public Holidays”, but the integration does not yet automatically switch columns based on today's weekday or public holidays. Configure one service pattern per entry and do not treat this as automatic public-holiday support.
 - Timetable data may change on the provider's website. Check the published timetable before travelling.
