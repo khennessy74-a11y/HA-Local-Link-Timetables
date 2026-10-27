@@ -20,6 +20,7 @@ from .const import (
     DOMAIN,
     SCAN_INTERVAL_MINUTES,
 )
+from .http import fetch_public_page
 from .parser import TimetableParseError, parse_departures, parse_holiday_departures, parse_weekday_departures
 from .service_schedule import holiday_dates_from_response
 
@@ -51,13 +52,12 @@ class LocalLinkCoordinator(DataUpdateCoordinator[list[str] | dict[int, list[str]
     async def _async_update_data(self) -> list[str] | dict[int, list[str]]:
         """Download the timetable and return times for the selected stop."""
         try:
-            async with self.session.get(
+            html = await fetch_public_page(
+                self.session,
                 self.url,
                 timeout=20,
                 headers={"User-Agent": "HomeAssistant-LocalLinkTimetables/0.1"},
-            ) as response:
-                response.raise_for_status()
-                html = await response.text()
+            )
             if self.holiday_column:
                 self.holiday_times = parse_holiday_departures(
                     html, self.stop_name, self.holiday_column, self.direction_hint

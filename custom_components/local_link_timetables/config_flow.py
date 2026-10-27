@@ -21,6 +21,7 @@ from .const import (
     DOMAIN,
     WEEKDAY_OPTIONS,
 )
+from .http import fetch_public_page
 from .parser import AmbiguousTimetableError, TimetableParseError, parse_departures, parse_holiday_departures, parse_weekday_departures
 from .route_index import INDEX_URL, parse_route_index
 from .stop_index import parse_stop_options
@@ -124,9 +125,7 @@ def _clean_input(data: dict) -> dict:
 async def _fetch_page(hass: HomeAssistant, url: str) -> str:
     """Fetch a public Local Link page using Home Assistant's shared session."""
     session = async_get_clientsession(hass)
-    async with session.get(url, timeout=20) as response:
-        response.raise_for_status()
-        return await response.text()
+    return await fetch_public_page(session, url, timeout=20)
 
 
 async def _validate_input(hass: HomeAssistant, data: dict) -> str | None:
