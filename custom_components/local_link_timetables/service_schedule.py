@@ -1,20 +1,21 @@
 """Service-day-aware departure calculations."""
 
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 
 
 def next_departure(
-    times: list[str],
+    times: Sequence[str] | Mapping[int | str, Sequence[str]],
     now: datetime,
     service_days: list[str] | set[str] | tuple[str, ...],
     search_days: int = 14,
 ) -> tuple[str | None, int | None, str | None]:
-    """Return the next departure time, minutes to it, and ISO service date.
+    """Return next departure, minutes to it, and ISO service date.
 
-    Weekdays use Python's convention: Monday=0 through Sunday=6. Times are
-    considered only on configured service days; after the final departure,
-    the search advances to the next configured service day rather than
-    automatically assuming the route runs tomorrow.
+    Times may be a legacy flat list or a mapping from weekday number
+    (Monday=0) to that day's departures. This supports separate weekday,
+    Saturday, and Sunday schedules. Public-holiday overrides are not inferred
+    here; callers must identify holidays and provide the correct schedule.
     """
     if not times or not service_days:
         return None, None, None
@@ -23,16 +24,29 @@ def next_departure(
     if any(day < 0 or day > 6 for day in active_days):
         raise ValueError("Service days must be weekday numbers from 0 to 6.")
 
-    parsed_times = sorted(
-        (int(value[:2]) * 60 + int(value[3:]), value) for value in times
-    )
+    per_day: dict[int, list[str]] | None = None
+    flat_times: list[str] = []
+    if isinstance(times, Mapping):
+        per_day = {}
+        for day, values in times.items():
+            weekday = int(day)
+            if weekday < 0 or weekday > 6:
+                raise ValueError("Schedule keys must be weekday numbers from 0 to 6.")
+            per_day[weekday] = list(values)
+    else:
+        flat_times = list(times)
+
     for offset in range(search_days + 1):
         service_date = (now + timedelta(days=offset)).date()
-        if service_date.weekday() not in active_days:
+        weekday = service_date.weekday()
+        if weekday not in active_days:
             continue
-        midnight = now.replace(
-            hour=0, minute=0, second=0, microsecond=0
-        ) + timedelta(days=offset)
+        daily_times = per_day.get(weekday, []) if per_day is not None else flat_times
+        parsed_times = sorted(
+            (int(value[:2]) * 60 + int(value[3:]), value)
+            for value in daily_times
+        )
+        midnight = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=offset)
         for minute, value in parsed_times:
             departure = midnight + timedelta(minutes=minute)
             if departure < now:
