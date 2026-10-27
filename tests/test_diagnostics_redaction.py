@@ -1,5 +1,6 @@
 """Regression tests for the diagnostics privacy boundary."""
 
+import asyncio
 import importlib.util
 from pathlib import Path
 import sys
@@ -12,7 +13,7 @@ PACKAGE.__path__ = [str(ROOT)]
 sys.modules.setdefault("local_link_timetables", PACKAGE)
 
 # Diagnostics imports Home Assistant at module load. Provide narrow test doubles
-# so the privacy field list can be tested without installing a full HA instance.
+# so its own diagnostic function can be exercised without a full HA installation.
 ha = types.ModuleType("homeassistant")
 ha_components = types.ModuleType("homeassistant.components")
 ha_diagnostics = types.ModuleType("homeassistant.components.diagnostics")
@@ -70,9 +71,22 @@ for _name, _module in _saved_modules.items():
         sys.modules[_name] = _module
 
 
-class DiagnosticsRedactionTests(unittest.TestCase):
-    def test_redacts_stop_route_and_calendar_details_including_title(self):
-        entry = {
+class FakeCoordinator:
+    def __init__(self):
+        self.last_update_success = False
+        self.last_exception = ValueError(
+            "request failed for https://locallinklmf.ie/tfi-route-188/"
+        )
+        self.data = {0: ["06:30", "08:00"]}
+        self.holiday_dates = {"2026-12-25"}
+        self.holiday_times = ["09:15"]
+
+
+class FakeEntry:
+    entry_id = "entry-1"
+
+    def as_dict(self):
+        return {
             "title": "Kentstown Church outbound",
             "data": {
                 "url": "https://locallinklmf.ie/tfi-route-188/",
@@ -84,26 +98,41 @@ class DiagnosticsRedactionTests(unittest.TestCase):
             },
             "options": {},
         }
-        redacted = async_redact_data(entry, DIAGNOSTICS.TO_REDACT)
-        self.assertEqual(redacted["title"], "**REDACTED**")
-        self.assertEqual(redacted["data"]["url"], "**REDACTED**")
-        self.assertEqual(redacted["data"]["stop_name"], "**REDACTED**")
-        self.assertEqual(redacted["data"]["direction_hint"], "**REDACTED**")
-        self.assertEqual(redacted["data"]["name"], "**REDACTED**")
-        self.assertEqual(redacted["data"]["holiday_calendar"], "**REDACTED**")
-        self.assertEqual(redacted["data"]["service_days"], ["0", "1"])
 
-    def test_sensitive_fields_are_in_the_redaction_contract(self):
-        self.assertTrue(
-            {
-                "url",
-                "stop_name",
-                "direction_hint",
-                "name",
-                "holiday_calendar",
-                "title",
-            }.issubset(DIAGNOSTICS.TO_REDACT)
+
+class DiagnosticsRedactionTests(unittest.TestCase):
+    def test_diagnostics_redacts_sensitive_fields_and_exception_message(self):
+        coordinator = FakeCoordinator()
+        hass = types.SimpleNamespace(data={"local_link_timetables": {"entry-1": coordinator}})
+        result = asyncio.run(
+            DIAGNOSTICS.async_get_config_entry_diagnostics(hass, FakeEntry())
         )
+
+        entry = result["entry"]
+        self.assertEqual(entry["title"], "**REDACTED**")
+        for key in ("url", "stop_name", "direction_hint", "name", "holiday_calendar"):
+            self.assertEqual(entry["data"][key], "**REDACTED**")
+        self.assertEqual(entry["data"]["service_days"], ["0", "1"])
+
+        details = result["coordinator"]
+        self.assertFalse(details["available"])
+        self.assertEqual(details["last_exception_type"], "ValueError")
+        self.assertNotIn("locallinklmf.ie", str(details))
+        self.assertEqual(details["schedule"], {0: ["06:30", "08:00"]})
+        self.assertEqual(details["holiday_dates"], ["2026-12-25"])
+        self.assertEqual(details["holiday_times"], ["09:15"])
+
+    def test_diagnostics_handles_missing_coordinator(self):
+        hass = types.SimpleNamespace(data={})
+        result = asyncio.run(
+            DIAGNOSTICS.async_get_config_entry_diagnostics(hass, FakeEntry())
+        )
+        self.assertFalse(result["coordinator"]["available"])
+        self.assertIsNone(result["coordinator"]["last_update_success"])
+        self.assertIsNone(result["coordinator"]["last_exception_type"])
+        self.assertIsNone(result["coordinator"]["schedule"])
+        self.assertEqual(result["coordinator"]["holiday_dates"], [])
+        self.assertEqual(result["coordinator"]["holiday_times"], [])
 
 
 if __name__ == "__main__":
