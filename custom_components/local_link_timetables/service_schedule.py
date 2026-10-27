@@ -20,30 +20,25 @@ def next_departure(
         return None, None, None
 
     active_days = {int(day) for day in service_days}
-    parsed_times = sorted(
-        (int(value[:2]) * 60 + int(value[3:]), value) for value in times
-    )
     if any(day < 0 or day > 6 for day in active_days):
         raise ValueError("Service days must be weekday numbers from 0 to 6.")
 
+    parsed_times = sorted(
+        (int(value[:2]) * 60 + int(value[3:]), value) for value in times
+    )
     for offset in range(search_days + 1):
         service_date = (now + timedelta(days=offset)).date()
         if service_date.weekday() not in active_days:
             continue
-        current_minute = (
-            now.hour * 60 + now.minute if offset == 0 else -1
-        )
+        midnight = now.replace(
+            hour=0, minute=0, second=0, microsecond=0
+        ) + timedelta(days=offset)
         for minute, value in parsed_times:
-            if minute < current_minute:
+            departure = midnight + timedelta(minutes=minute)
+            if departure < now:
                 continue
-            departure = datetime.combine(
-                service_date, datetime.min.time()
-            ) + timedelta(minutes=minute)
-            if offset == 0:
-                remaining_seconds = (departure - now).total_seconds()
-                minutes_until = max(0, int((remaining_seconds + 59) // 60))
-            else:
-                minutes_until = int((departure - now).total_seconds() // 60)
+            remaining_seconds = (departure - now).total_seconds()
+            minutes_until = max(0, int((remaining_seconds + 59) // 60))
             return value, minutes_until, service_date.isoformat()
 
     return None, None, None
