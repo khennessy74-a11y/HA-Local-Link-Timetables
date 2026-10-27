@@ -32,7 +32,8 @@
       "route_index_unavailable": "Could not load the Local Link route list. You can still enter the timetable URL manually.",
       "stop_list_unavailable": "Could not discover stop names from this page. You can still type the stop name manually.",
       "holiday_calendar_required": "Choose a public-holiday calendar when configuring a holiday service column.",
-      "holiday_service_column_required": "Choose the ordinary service column as well as the public-holiday column."
+      "holiday_service_column_required": "Choose the ordinary service column as well as the public-holiday column.",
+      "holiday_column_required": "Choose a public-holiday column when selecting a public-holiday calendar."
     },
     "abort": {
       "already_configured": "This timetable page, stop, and direction are already configured."
@@ -64,7 +65,8 @@
       "already_configured": "Another Local Link timetable already uses this URL, stop, direction, and service column.",
       "stop_name_required": "Enter the stop name exactly as it appears in the timetable.",
       "holiday_calendar_required": "Choose a public-holiday calendar when configuring a holiday service column.",
-      "holiday_service_column_required": "Choose the ordinary service column as well as the public-holiday column."
+      "holiday_service_column_required": "Choose the ordinary service column as well as the public-holiday column.",
+      "holiday_column_required": "Choose a public-holiday column when selecting a public-holiday calendar."
     }
   }
 }
