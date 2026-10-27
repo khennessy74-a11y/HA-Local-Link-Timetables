@@ -309,7 +309,7 @@ def _service_days_from_header(value: str) -> set[int]:
 
     # Expand every explicitly written range, retaining standalone days.
     # For example, "Mon, Wed–Fri" covers Monday and Wednesday through Friday.
-    range_separator = re.compile(r"(?:-|\\bto\\b|\\bthrough\\b|\\bthru\\b)")
+    range_separator = re.compile(r"(?:-|\bto\b|\bthrough\b|\bthru\b)")
     for left, right in zip(matches, matches[1:]):
         between = text[left.end():right.start()]
         if not range_separator.search(between):
