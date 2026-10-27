@@ -486,6 +486,16 @@ class TimetableParserTests(unittest.TestCase):
         self.assertEqual(schedule[5], [])
         self.assertEqual(schedule[6], [])
 
+    def test_overlapping_weekday_columns_without_journey_labels_are_ambiguous(self):
+        html = """
+        <table>
+          <tr><th>Stop Name</th><th>Mon–Fri</th><th>Mon–Sun</th></tr>
+          <tr><td>Navan</td><td>06:30</td><td>08:30</td></tr>
+        </table>
+        """
+        with self.assertRaises(AmbiguousTimetableError):
+            PARSER.parse_weekday_departures(html, "Navan")
+
     def test_weekday_schedule_maps_distinct_service_columns_by_day(self):
         html = """
         <table>
