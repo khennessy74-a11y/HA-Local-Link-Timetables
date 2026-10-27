@@ -279,3 +279,105 @@ def parse_departures(
         )
 
     return matches[0]
+
+
+_DAY_NAMES = {
+    "mon": 0, "monday": 0, "tue": 1, "tues": 1, "tuesday": 1,
+    "wed": 2, "wednesday": 2, "thu": 3, "thur": 3, "thurs": 3,
+    "thursday": 3, "fri": 4, "friday": 4, "sat": 5, "saturday": 5,
+    "sun": 6, "sunday": 6,
+}
+
+
+def _service_days_from_header(value: str) -> set[int]:
+    """Return weekdays explicitly covered by a service-column heading."""
+    text = _normalise(value).replace("–", "-").replace("—", "-")
+    if "daily" in text:
+        return set(range(7))
+    tokens = re.findall(
+        r"(?<!\\w)(monday|mon|tuesday|tues|tue|wednesday|wed|thursday|thurs|thur|thu|friday|fri|saturday|sat|sunday|sun)(?!\\w)",
+        text,
+    )
+    days = [_DAY_NAMES[token] for token in tokens]
+    if len(days) >= 2 and "-" in text:
+        start, end = days[0], days[1]
+        covered = set()
+        day = start
+        while True:
+            covered.add(day)
+            if day == end:
+                break
+            day = (day + 1) % 7
+            if len(covered) == 7:
+                break
+        return covered
+    return set(days)
+
+
+def parse_weekday_departures(
+    html: str,
+    stop_name: str,
+    direction_hint: str | None = None,
+) -> dict[int, list[str]] | None:
+    """Extract departures by weekday from explicitly labelled timetable columns.
+
+    Columns applying to the same weekday are combined. This handles grouped
+    layouts such as Route 188 where a Mon–Sat journey coexists with daily
+    journeys. Returns None for generic tables without weekday headers, so
+    callers can retain legacy flat-list parsing. Public holidays are not
+    inferred from dates.
+    """
+    if not stop_name.strip():
+        raise TimetableParseError("A stop name is required.")
+
+    parser = _TableRowParser()
+    parser.feed(html)
+    target = _normalise(stop_name)
+    hint = _normalise(direction_hint or "")
+    exact_stop_exists = any(
+        target in [_normalise(cell) for cell in row["cells"]]
+        for row in parser.table_rows
+    )
+    candidates = []
+    for position, row in enumerate(parser.table_rows):
+        cells = row["cells"]
+        if row["is_header"] or not _row_matches_stop(cells, stop_name, exact_stop_exists):
+            continue
+        row_text = " ".join([row["heading"], *cells])
+        if hint and not _contains_phrase(row_text, direction_hint or ""):
+            continue
+        headers = [
+            previous for previous in parser.table_rows[:position]
+            if previous["is_header"]
+            and previous["table_id"] == row["table_id"]
+            and previous["heading"] == row["heading"]
+        ]
+        if not headers:
+            continue
+        header = headers[-1]["cells"]
+        if any(_service_days_from_header(cell) for cell in header):
+            candidates.append((row, header))
+
+    if not candidates:
+        return None
+    if len(candidates) > 1:
+        raise AmbiguousTimetableError(
+            f"Stop '{stop_name}' appears in multiple weekday timetable rows. Add a direction/section hint."
+        )
+
+    row, header = candidates[0]
+    schedule: dict[int, list[str]] = {day: [] for day in range(7)}
+    for index, heading in enumerate(header):
+        if index >= len(row["cells"]):
+            continue
+        days = _service_days_from_header(heading)
+        if not days:
+            continue
+        for day in days:
+            schedule[day].extend(_times(row["cells"][index]))
+
+    for day, times in schedule.items():
+        schedule[day] = sorted(
+            set(times), key=lambda value: int(value[:2]) * 60 + int(value[3:])
+        )
+    return schedule
