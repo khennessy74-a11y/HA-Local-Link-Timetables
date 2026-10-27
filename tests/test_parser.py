@@ -121,6 +121,38 @@ class TimetableParserTests(unittest.TestCase):
             ["06:30", "07:40"],
         )
 
+    def test_route_188_grouped_headers_select_the_correct_journey_group(self):
+        html = """
+        <h2>Drogheda to Navan to Athboy</h2>
+        <table>
+          <tr>
+            <th>Stop Name</th><th>Stop Location</th><th>Stop Number</th><th>Restriction</th>
+            <th colspan="2">Mon–Sat (1 journey)</th>
+            <th colspan="6">Monday–Sunday (7 journeys)</th>
+          </tr>
+          <tr>
+            <th></th><th></th><th></th><th></th>
+            <th>1</th><th>2</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th>
+          </tr>
+          <tr>
+            <td>Kentstown</td><td>Kentstown Church</td><td>137851</td><td>P/S</td>
+            <td>06:57</td><td>08:23</td><td>10:39</td><td>12:39</td><td>14:29</td>
+            <td>16:29</td><td>19:00</td><td>20:12</td>
+          </tr>
+        </table>
+        """
+        self.assertEqual(
+            parse_departures(html, "Kentstown Church", service_column_hint="Mon–Sat"),
+            ["06:57", "08:23"],
+        )
+        self.assertEqual(
+            parse_departures(
+                html, "Kentstown Church",
+                service_column_hint="Monday–Sunday",
+            ),
+            ["10:39", "12:39", "14:29", "16:29", "19:00", "20:12"],
+        )
+
     def test_service_column_header_does_not_leak_between_tables(self):
         html = """
         <h2>Outbound</h2>
