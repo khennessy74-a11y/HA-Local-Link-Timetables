@@ -68,6 +68,28 @@ class TimetableParserTests(unittest.TestCase):
             ["08:45", "09:58"],
         )
 
+    def test_direction_heading_outside_table_selects_correct_row(self):
+        html = """
+        <h2>Outbound direction</h2>
+        <table><tr><td>Balbriggan Station</td><td>06:20 · 07:30 · 09:40</td></tr></table>
+        <h2>Return direction</h2>
+        <table><tr><td>Balbriggan Station</td><td>08:45 · 11:45 · 14:45</td></tr></table>
+        """
+        self.assertEqual(
+            parse_departures(html, "Balbriggan Station", "Return direction"),
+            ["08:45", "11:45", "14:45"],
+        )
+
+    def test_middle_dot_separator_and_dash_placeholders(self):
+        html = """
+        <table><tr><td>Stop Name</td><td>Times</td></tr>
+        <tr><td>Kells PCC</td><td>— · 09:15 · 13:00 · 16:00 · —</td></tr></table>
+        """
+        self.assertEqual(
+            parse_departures(html, "Kells PCC"),
+            ["09:15", "13:00", "16:00"],
+        )
+
     def test_missing_stop_raises(self):
         with self.assertRaises(TimetableParseError):
             parse_departures(
