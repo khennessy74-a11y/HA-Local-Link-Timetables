@@ -18,6 +18,7 @@ def valid_timetable_url(url: str) -> bool:
     return (
         parsed.scheme == "https"
         and bool(parsed.netloc)
+        and not parsed.netloc.endswith(":")
         and parsed.username is None
         and parsed.password is None
         and port in (None, 443)
