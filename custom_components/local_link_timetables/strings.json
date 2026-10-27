@@ -23,7 +23,7 @@
     "error": {
       "invalid_url": "Use an HTTPS timetable page hosted on locallinklmf.ie.",
       "stop_not_found": "No timetable row with departure times matched that stop and direction text.",
-      "ambiguous_stop": "This stop has different times in multiple rows. Enter direction/section text that appears in the desired row.",
+      "ambiguous_stop": "The stop or timetable has multiple possible matches. Add a direction/section hint or select a service-column heading to choose the intended timetable.",
       "cannot_connect": "Could not load the timetable page. Check the URL and try again.",
       "service_days": "Select at least one day of the week.",
       "stop_name_required": "Enter the stop name exactly as it appears in the timetable.",
