@@ -45,6 +45,18 @@ def _config_schema(defaults: dict) -> vol.Schema:
     )
 
 
+def _clean_input(data: dict) -> dict:
+    """Normalize form values before validating or saving them."""
+    cleaned = dict(data)
+    cleaned[CONF_URL] = str(data.get(CONF_URL, "")).strip()
+    cleaned[CONF_STOP_NAME] = str(data.get(CONF_STOP_NAME, "")).strip()
+    cleaned[CONF_DIRECTION_HINT] = str(data.get(CONF_DIRECTION_HINT, "")).strip()
+    cleaned[CONF_SERVICE_COLUMN] = str(data.get(CONF_SERVICE_COLUMN, "")).strip()
+    cleaned[CONF_NAME] = str(data.get(CONF_NAME, "")).strip() or cleaned[CONF_STOP_NAME]
+    cleaned[CONF_SERVICE_DAYS] = data.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS)
+    return cleaned
+
+
 def _entry_identity(data: dict) -> tuple[str, str, str, str]:
     """Return a normalized identity for duplicate detection across setup and edits."""
     return (
@@ -68,6 +80,8 @@ def _valid_timetable_url(url: str) -> bool:
 async def _validate_input(hass: HomeAssistant, data: dict) -> str | None:
     """Validate the URL, stop, and optional direction hint against the live page."""
     url = data[CONF_URL].strip()
+    if not data.get(CONF_STOP_NAME, "").strip():
+        return "stop_name_required"
     if not data.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS):
         return "service_days"
     if not _valid_timetable_url(url):
@@ -102,6 +116,7 @@ class LocalLinkTimetablesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Configure a route page and stop."""
         errors: dict[str, str] = {}
         if user_input is not None:
+            user_input = _clean_input(user_input)
             error = await _validate_input(self.hass, user_input)
             if error is None:
                 url = user_input[CONF_URL].strip()
@@ -152,6 +167,7 @@ class LocalLinkTimetablesOptionsFlow(config_entries.OptionsFlow):
         """Validate and save changes to an existing timetable."""
         errors: dict[str, str] = {}
         if user_input is not None:
+            user_input = _clean_input(user_input)
             error = await _validate_input(self.hass, user_input)
             if error is None:
                 identity = _entry_identity(user_input)
