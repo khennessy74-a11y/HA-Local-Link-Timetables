@@ -1,6 +1,5 @@
 """Config flow for Local Link Timetables."""
 
-from urllib.parse import urlparse
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -25,6 +24,7 @@ from .const import (
 from .parser import AmbiguousTimetableError, TimetableParseError, parse_departures, parse_holiday_departures, parse_weekday_departures
 from .route_index import INDEX_URL, parse_route_index
 from .stop_index import parse_stop_options
+from .validation import entry_identity as _entry_identity, valid_timetable_url as _valid_timetable_url
 
 
 def _config_schema(defaults: dict, route_options: list[dict[str, str]] | None = None) -> vol.Schema:
@@ -114,36 +114,6 @@ def _clean_input(data: dict) -> dict:
     cleaned[CONF_NAME] = str(data.get(CONF_NAME, "")).strip() or cleaned[CONF_STOP_NAME]
     cleaned[CONF_SERVICE_DAYS] = data.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS)
     return cleaned
-
-
-def _entry_identity(data: dict) -> tuple[str, str, str, str]:
-    """Return a normalized identity for duplicate detection across setup and edits."""
-    def normalise(value: object) -> str:
-        return " ".join(str(value or "").casefold().split())
-
-    return (
-        normalise(data.get(CONF_URL)).rstrip("/"),
-        normalise(data.get(CONF_STOP_NAME)),
-        normalise(data.get(CONF_DIRECTION_HINT)),
-        normalise(data.get(CONF_SERVICE_COLUMN)),
-    )
-
-
-def _valid_timetable_url(url: str) -> bool:
-    """Only allow public Local Link timetable hosts."""
-    try:
-        parsed = urlparse(url)
-        hostname = (parsed.hostname or "").lower()
-        port = parsed.port
-    except ValueError:
-        return False
-    return (
-        parsed.scheme == "https"
-        and parsed.username is None
-        and parsed.password is None
-        and port in (None, 443)
-        and (hostname == "locallinklmf.ie" or hostname.endswith(".locallinklmf.ie"))
-    )
 
 
 async def _fetch_page(hass: HomeAssistant, url: str) -> str:
