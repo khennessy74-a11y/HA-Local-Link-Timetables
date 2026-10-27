@@ -109,7 +109,11 @@ class _TableRowParser(HTMLParser):
                 if self._table_depth:
                     cells = list(self._cells)
                     normalized = [_normalise(cell) for cell in cells]
-                    header = any(
+                    # A stop can legitimately contain a weekday word (for
+                    # example, "Sunday Market"). Service headings are only
+                    # header rows when the row itself contains no clock times.
+                    has_times = any(_TIME_RE.search(cell) for cell in cells)
+                    header = not has_times and any(
                         any(word in cell for word in _SERVICE_WORDS)
                         for cell in normalized
                     )

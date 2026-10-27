@@ -207,6 +207,18 @@ class TimetableParserTests(unittest.TestCase):
         with self.assertRaises(TimetableParseError):
             parse_departures(html, "Enfield", service_column_hint="Sunday only")
 
+    def test_stop_name_containing_weekday_is_not_mistaken_for_header(self):
+        html = """
+        <table>
+          <tr><th>Stop Name</th><th>Mon–Fri</th></tr>
+          <tr><td>Sunday Market</td><td>08:15 · 12:45</td></tr>
+        </table>
+        """
+        self.assertEqual(
+            parse_departures(html, "Sunday Market", service_column_hint="Mon–Fri"),
+            ["08:15", "12:45"],
+        )
+
     def test_missing_stop_raises(self):
         with self.assertRaises(TimetableParseError):
             parse_departures(
