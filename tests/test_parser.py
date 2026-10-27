@@ -568,10 +568,22 @@ class TimetableParserTests(unittest.TestCase):
                 "Mon–Fri",
             )
 
-    def test_missing_holiday_departures_fails_safely(self):
+    def test_empty_holiday_cell_means_no_service_not_missing_stop(self):
         html = """
         <table><tr><th>Stop Name</th><th>Mon–Sun &amp; Public Holidays</th></tr>
         <tr><td>Enfield</td><td>—</td></tr></table>
+        """
+        self.assertEqual(
+            parse_holiday_departures(
+                html, "Enfield", "Mon–Sun & Public Holidays"
+            ),
+            [],
+        )
+
+    def test_missing_holiday_column_still_fails_safely(self):
+        html = """
+        <table><tr><th>Stop Name</th><th>Mon–Fri</th></tr>
+        <tr><td>Enfield</td><td>07:00</td></tr></table>
         """
         with self.assertRaises(TimetableParseError):
             parse_holiday_departures(

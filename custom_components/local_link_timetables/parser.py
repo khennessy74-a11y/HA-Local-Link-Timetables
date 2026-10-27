@@ -477,12 +477,16 @@ def parse_holiday_departures(
             index for index, label in enumerate(header)
             if hint in _normalise(label) and "holiday" in _normalise(label)
         ]
+        # An empty cell (often rendered as a dash) is a valid no-service
+        # timetable for this stop. Only treat the row as unmatched when the
+        # selected holiday column itself is absent.
+        if not indices:
+            continue
         times = [
             value for index in indices if index < len(cells)
             for value in _times(cells[index])
         ]
-        if times:
-            matches.append(times)
+        matches.append(times)
     if not matches:
         raise TimetableParseError(
             f"No public-holiday departures found for stop '{stop_name}' in column '{holiday_column_hint}'."
