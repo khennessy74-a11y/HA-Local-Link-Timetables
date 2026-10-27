@@ -42,7 +42,7 @@ class RouteIndexTests(unittest.TestCase):
         self.assertEqual(parse_route_index(html), [])
 
     def test_resolves_relative_links_and_uses_fallback_label(self):
-        routes = parse_route_index('<a href="tfi-route-189/"></a>')
+        routes = parse_route_index('<a href="/tfi-route-189/"></a>')
         self.assertEqual(routes, [{
             "value": "https://locallinklmf.ie/tfi-route-189/",
             "label": "tfi-route-189",
