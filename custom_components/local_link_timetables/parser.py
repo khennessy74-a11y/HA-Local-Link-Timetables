@@ -22,8 +22,21 @@ def _normalise(value: str) -> str:
 
 
 def _times(value: str) -> list[str]:
-    """Extract valid clock times, including tightly concatenated values."""
-    return [f"{int(hour):02d}:{minute}" for hour, minute in _TIME_RE.findall(value)]
+    """Extract valid clock times without accepting fragments of invalid hours."""
+    results: list[str] = []
+    previous_end = -1
+    for match in _TIME_RE.finditer(value):
+        # A digit immediately before a match normally means this is only a
+        # fragment of an invalid value (25:00 or 123:45). Allow it only when
+        # the preceding valid time ended exactly here, supporting compact
+        # timetable cells such as "06:3007:4518:05".
+        if match.start() and value[match.start() - 1].isdigit():
+            if match.start() != previous_end:
+                continue
+        hour, minute = match.groups()
+        results.append(f"{int(hour):02d}:{minute}")
+        previous_end = match.end()
+    return results
 
 
 def _contains_phrase(value: str, phrase: str) -> bool:
