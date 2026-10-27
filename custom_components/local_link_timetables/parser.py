@@ -404,3 +404,69 @@ def parse_weekday_departures(
             set(times), key=lambda value: int(value[:2]) * 60 + int(value[3:])
         )
     return schedule
+
+
+
+def parse_holiday_departures(
+    html: str,
+    stop_name: str,
+    holiday_column_hint: str,
+    direction_hint: str | None = None,
+) -> list[str]:
+    """Extract departures from one explicitly selected public-holiday column.
+
+    The caller must configure the column separately from the ordinary schedule.
+    This avoids guessing which overlapping service columns are alternatives.
+    """
+    hint = _normalise(holiday_column_hint)
+    if not hint or "holiday" not in hint:
+        raise TimetableParseError(
+            "Choose a service-column heading that explicitly mentions public holidays."
+        )
+    parser = _TableRowParser()
+    parser.feed(html)
+    target = _normalise(stop_name)
+    exact_stop_exists = any(
+        target in [_normalise(cell) for cell in row["cells"]]
+        for row in parser.table_rows
+    )
+    matches: list[list[str]] = []
+    for position, row in enumerate(parser.table_rows):
+        cells = row["cells"]
+        if row["is_header"] or not _row_matches_stop(cells, stop_name, exact_stop_exists):
+            continue
+        row_text = " ".join([row["heading"], *cells])
+        if direction_hint and not _contains_phrase(row_text, direction_hint):
+            continue
+        headers = [
+            previous for previous in parser.table_rows[:position]
+            if previous["is_header"]
+            and previous["table_id"] == row["table_id"]
+            and previous["heading"] == row["heading"]
+        ]
+        if not headers:
+            continue
+        header = headers[-1]["cells"]
+        indices = [
+            index for index, label in enumerate(header)
+            if hint in _normalise(label) and "holiday" in _normalise(label)
+        ]
+        times = [
+            value for index in indices if index < len(cells)
+            for value in _times(cells[index])
+        ]
+        if times:
+            matches.append(times)
+    if not matches:
+        raise TimetableParseError(
+            f"No public-holiday departures found for stop '{stop_name}' in column '{holiday_column_hint}'."
+        )
+    unique = {tuple(values) for values in matches}
+    if len(unique) > 1:
+        raise AmbiguousTimetableError(
+            f"Stop '{stop_name}' has multiple public-holiday timetable matches; add a direction/section hint."
+        )
+    return sorted(
+        matches[0],
+        key=lambda value: int(value[:2]) * 60 + int(value[3:]),
+    )
