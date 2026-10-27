@@ -18,7 +18,8 @@ This is an independent community project and is not affiliated with or endorsed 
 - [ ] Verify live Route 188 page structure and both directions
 - [ ] Test multiple other Local Link route pages
 - [x] Allow the configured timetable to be limited to selected days of the week
-- [ ] Parse multiple timetable columns and automatically choose the correct weekday/weekend/public-holiday times
+- [x] Allow an optional service-column heading to select one timetable column
+- [ ] Automatically choose the correct weekday/weekend/public-holiday column for the current date
 - [ ] Add route/stop discovery so users do not have to type a stop name
 - [ ] Review error handling, diagnostics, and HACS release readiness
 
@@ -30,7 +31,7 @@ The integration is not yet a stable HACS release.
 2. Restart Home Assistant.
 3. Go to **Settings → Devices & services → Add integration**.
 4. Search for **Local Link Timetables**.
-5. Enter the timetable page URL, stop name as printed on the page, an optional direction/section text, the days this configured timetable operates, and a friendly name.
+5. Enter the timetable page URL, stop name as printed on the page, an optional direction/section text, an optional exact service-column heading (for example `Mon–Fri`), the days this configured timetable operates, and a friendly name.
 
 For initial validation, use the Route 188 page:
 
@@ -50,9 +51,9 @@ The source timetable is fetched every 15 minutes. A failed fetch or parse is rep
 
 ## Important limitations
 
-- The parser currently extracts times from HTML table rows containing the selected stop. Local Link route pages may use different HTML structures, so compatibility with every route has not yet been established.
-- If the same stop appears in multiple rows with different times, setup now fails safely and asks for a direction/section hint. The hint must appear in the same row as the stop; direction/section headings in separate rows are associated with timetable rows, but service-day column selection is not yet implemented.
-- Service days are currently selected manually for one configured list of departure times. The integration does not yet parse separate timetable columns such as “Mon–Fri” and “Mon–Sun & Public Holidays” or automatically select the correct column for the date. For routes with different times by service pattern, this remains a limitation: configure only one matching pattern and do not treat this as automatic public-holiday support.
+- The parser supports selecting a departure-time cell by its service-column heading on standard HTML tables. Older or complex layouts (including tables with grouped headings) still need live-route validation, so compatibility with every route has not yet been established.
+- If the same stop appears in multiple rows with different times, setup now fails safely and asks for a direction/section hint. The direction hint can match the stop row or its section heading. The optional service-column hint should match the published header text exactly enough to identify the intended column; if a route has grouped or unusual headers, verify the extracted departures before relying on them.
+- Service days are currently selected manually for one configured list of departure times. The optional service-column field can select a named column such as “Mon–Fri” or “Mon–Sun & Public Holidays”, but the integration does not yet automatically switch columns based on today's weekday or public holidays. Configure one service pattern per entry and do not treat this as automatic public-holiday support.
 - Timetable data may change on the provider's website. Check the published timetable before travelling.
 
 ## Tests
