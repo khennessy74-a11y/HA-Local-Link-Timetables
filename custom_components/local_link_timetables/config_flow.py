@@ -103,6 +103,8 @@ def _clean_input(data: dict) -> dict:
     cleaned[CONF_STOP_NAME] = str(data.get(CONF_STOP_NAME, "")).strip()
     cleaned[CONF_DIRECTION_HINT] = str(data.get(CONF_DIRECTION_HINT, "")).strip()
     cleaned[CONF_SERVICE_COLUMN] = str(data.get(CONF_SERVICE_COLUMN, "")).strip()
+    cleaned[CONF_HOLIDAY_COLUMN] = str(data.get(CONF_HOLIDAY_COLUMN, "")).strip()
+    cleaned[CONF_HOLIDAY_CALENDAR] = str(data.get(CONF_HOLIDAY_CALENDAR, "")).strip()
     cleaned[CONF_NAME] = str(data.get(CONF_NAME, "")).strip() or cleaned[CONF_STOP_NAME]
     cleaned[CONF_SERVICE_DAYS] = data.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS)
     return cleaned
@@ -145,6 +147,12 @@ async def _validate_input(hass: HomeAssistant, data: dict) -> str | None:
         return "service_days"
     if not _valid_timetable_url(url):
         return "invalid_url"
+    if data.get(CONF_HOLIDAY_COLUMN) and not data.get(CONF_SERVICE_COLUMN):
+        return "holiday_service_column_required"
+    if data.get(CONF_HOLIDAY_COLUMN) and not data.get(CONF_HOLIDAY_CALENDAR):
+        return "holiday_calendar_required"
+    if data.get(CONF_HOLIDAY_CALENDAR) and not data.get(CONF_HOLIDAY_COLUMN):
+        return "holiday_column_required"
 
     try:
         html = await _fetch_page(hass, url)
@@ -158,6 +166,11 @@ async def _validate_input(hass: HomeAssistant, data: dict) -> str | None:
             data.get(CONF_DIRECTION_HINT, ""),
             data.get(CONF_SERVICE_COLUMN, ""),
         )
+        if data.get(CONF_HOLIDAY_COLUMN):
+            parse_holiday_departures(
+                html, data[CONF_STOP_NAME], data[CONF_HOLIDAY_COLUMN],
+                data.get(CONF_DIRECTION_HINT, ""),
+            )
     except AmbiguousTimetableError:
         return "ambiguous_stop"
     except TimetableParseError:
@@ -228,6 +241,8 @@ class LocalLinkTimetablesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_STOP_NAME: data[CONF_STOP_NAME],
                         CONF_DIRECTION_HINT: data[CONF_DIRECTION_HINT],
                         CONF_SERVICE_COLUMN: data[CONF_SERVICE_COLUMN],
+                        CONF_HOLIDAY_COLUMN: data[CONF_HOLIDAY_COLUMN],
+                        CONF_HOLIDAY_CALENDAR: data[CONF_HOLIDAY_CALENDAR],
                         CONF_SERVICE_DAYS: data[CONF_SERVICE_DAYS],
                         CONF_NAME: name,
                     },
