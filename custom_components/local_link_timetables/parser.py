@@ -161,13 +161,18 @@ def parse_departures(
             if not header_rows:
                 continue
             header = header_rows[-1]["cells"]
-            index = next(
-                (i for i, cell in enumerate(header) if _normalise(column_hint) in _normalise(cell)),
-                None,
-            )
-            if index is None or index >= len(cells):
-                continue
-            times = _times(cells[index])
+            indices = [
+                i for i, cell in enumerate(header)
+                if _normalise(column_hint) in _normalise(cell)
+            ]
+            # Repeated header labels represent a grouped column (colspan), as
+            # on Route 188 where "Mon–Sat" covers more than one journey.
+            times = [
+                departure
+                for index in indices
+                if index < len(cells)
+                for departure in _times(cells[index])
+            ]
             if times:
                 matches.append(times)
     else:
