@@ -48,6 +48,10 @@ class RouteIndexTests(unittest.TestCase):
             "label": "tfi-route-189",
         }])
 
+    def test_malformed_port_does_not_crash_discovery(self):
+        html = '<a href="https://locallinklmf.ie:abc/tfi-route-188/">Bad port</a>'
+        self.assertEqual(parse_route_index(html), [])
+
     def test_keeps_official_host_subdomains_only(self):
         html = """
         <a href="https://www.locallinklmf.ie/tfi-route-188/">WWW</a>

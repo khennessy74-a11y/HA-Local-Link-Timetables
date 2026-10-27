@@ -12,11 +12,15 @@ def _normalise_url(href: str, base_url: str) -> str | None:
     candidate = urljoin(base_url, href.strip())
     parsed = urlparse(candidate)
     hostname = (parsed.hostname or "").lower()
+    try:
+        port = parsed.port
+    except ValueError:
+        return None
     if (
         parsed.scheme != "https"
         or parsed.username is not None
         or parsed.password is not None
-        or parsed.port not in (None, 443)
+        or port not in (None, 443)
         or not (hostname == _ALLOWED_HOST or hostname.endswith("." + _ALLOWED_HOST))
     ):
         return None

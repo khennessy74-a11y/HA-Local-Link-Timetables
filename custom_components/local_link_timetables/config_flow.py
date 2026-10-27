@@ -131,10 +131,17 @@ def _entry_identity(data: dict) -> tuple[str, str, str, str]:
 
 def _valid_timetable_url(url: str) -> bool:
     """Only allow public Local Link timetable hosts."""
-    parsed = urlparse(url)
-    hostname = (parsed.hostname or "").lower()
+    try:
+        parsed = urlparse(url)
+        hostname = (parsed.hostname or "").lower()
+        port = parsed.port
+    except ValueError:
+        return False
     return (
         parsed.scheme == "https"
+        and parsed.username is None
+        and parsed.password is None
+        and port in (None, 443)
         and (hostname == "locallinklmf.ie" or hostname.endswith(".locallinklmf.ie"))
     )
 

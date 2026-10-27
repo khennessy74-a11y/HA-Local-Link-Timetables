@@ -190,6 +190,18 @@ class ServiceScheduleTests(unittest.TestCase):
             ("08:00", 60, "2026-10-26"),
         )
 
+    def test_departure_at_current_minute_is_still_available(self):
+        self.assertEqual(
+            next_departure(["08:00"], datetime(2026, 10, 26, 8, 0), ["0"]),
+            ("08:00", 0, "2026-10-26"),
+        )
+
+    def test_invalid_weekday_numbers_are_rejected(self):
+        with self.assertRaises(ValueError):
+            next_departure(["08:00"], datetime(2026, 10, 26, 7, 0), ["7"])
+        with self.assertRaises(ValueError):
+            departures_for_date(["08:00"], date(2026, 10, 26), ["-1"])
+
     def test_empty_holiday_timetable_does_not_fall_back_to_weekday_times(self):
         self.assertEqual(
             next_departure(
