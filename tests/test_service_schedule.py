@@ -31,14 +31,14 @@ class ServiceScheduleTests(unittest.TestCase):
         # Monday at 21:00, with service configured only Monday and Wednesday.
         self.assertEqual(
             next_departure(["06:57", "20:42"], datetime(2026, 10, 26, 21, 0), ["0", "2"]),
-            ("06:57", 2017, "2026-10-28"),
+            ("06:57", 2037, "2026-10-28"),
         )
 
     def test_weekday_schedule_does_not_roll_into_sunday(self):
         # Saturday at 21:00: next weekday service is Monday morning.
         self.assertEqual(
             next_departure(["06:57", "20:42"], datetime(2026, 10, 31, 21, 0), ["0", "1", "2", "3", "4"]),
-            ("06:57", 2017, "2026-11-02"),
+            ("06:57", 2037, "2026-11-02"),
         )
 
     def test_daily_route_preserves_existing_daily_behavior(self):
