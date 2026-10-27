@@ -19,7 +19,8 @@
       "stop_not_found": "No timetable row with departure times matched that stop and direction text.",
       "ambiguous_stop": "This stop has different times in multiple rows. Enter direction/section text that appears in the desired row.",
       "cannot_connect": "Could not load the timetable page. Check the URL and try again.",
-      "service_days": "Select at least one day of the week."
+      "service_days": "Select at least one day of the week.",
+      "stop_name_required": "Enter the stop name exactly as it appears in the timetable."
     },
     "abort": {
       "already_configured": "This timetable page, stop, and direction are already configured."
@@ -46,7 +47,8 @@
       "ambiguous_stop": "This stop has different times in multiple rows. Enter direction/section text that appears in the desired row.",
       "cannot_connect": "Could not load the timetable page. Check the URL and try again.",
       "service_days": "Select at least one day of the week.",
-      "already_configured": "Another Local Link timetable already uses this URL, stop, direction, and service column."
+      "already_configured": "Another Local Link timetable already uses this URL, stop, direction, and service column.",
+      "stop_name_required": "Enter the stop name exactly as it appears in the timetable."
     }
   }
 }
