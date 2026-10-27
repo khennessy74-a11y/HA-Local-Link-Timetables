@@ -35,6 +35,8 @@ def _valid_timetable_url(url: str) -> bool:
 async def _validate_input(hass: HomeAssistant, data: dict) -> str | None:
     """Validate the URL, stop, and optional direction hint against the live page."""
     url = data[CONF_URL].strip()
+    if not data.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS):
+        return "service_days"
     if not _valid_timetable_url(url):
         return "invalid_url"
 
