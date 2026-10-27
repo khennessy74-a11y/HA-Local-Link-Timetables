@@ -403,5 +403,42 @@ class TimetableParserTests(unittest.TestCase):
             ["06:20", "07:30", "09:40", "11:20", "13:30", "15:40", "17:10", "19:10", "21:10", "22:35"],
         )
 
+
+    def test_weekday_schedule_combines_columns_applicable_to_each_day(self):
+        html = """
+        <h2>Drogheda to Navan</h2>
+        <table>
+          <tr><th>Stop Name</th><th>Mon–Sat (1 journey)</th>
+              <th colspan="2">Monday–Sunday (2 journeys)</th></tr>
+          <tr><td>Kentstown Church</td><td>06:57</td><td>11:26</td><td>13:26</td></tr>
+        </table>
+        """
+        schedule = PARSER.parse_weekday_departures(html, "Kentstown Church")
+        self.assertIsNotNone(schedule)
+        self.assertEqual(schedule[0], ["06:57", "11:26", "13:26"])
+        self.assertEqual(schedule[5], ["06:57", "11:26", "13:26"])
+        self.assertEqual(schedule[6], ["11:26", "13:26"])
+
+    def test_weekday_schedule_leaves_generic_times_table_unchanged(self):
+        html = """
+        <table><tr><th>Stop Name</th><th>Times</th></tr>
+        <tr><td>Balbriggan Station</td><td>06:20 · 07:30 · 09:40</td></tr></table>
+        """
+        self.assertIsNone(PARSER.parse_weekday_departures(html, "Balbriggan Station"))
+
+    def test_weekday_schedule_uses_direction_hint_to_select_section(self):
+        html = """
+        <h2>Outbound</h2>
+        <table><tr><th>Stop</th><th>Mon–Fri</th></tr>
+        <tr><td>Shared Stop</td><td>06:30</td></tr></table>
+        <h2>Return</h2>
+        <table><tr><th>Stop</th><th>Saturday</th></tr>
+        <tr><td>Shared Stop</td><td>15:30</td></tr></table>
+        """
+        schedule = PARSER.parse_weekday_departures(html, "Shared Stop", "Outbound")
+        self.assertEqual(schedule[0], ["06:30"])
+        self.assertEqual(schedule[5], [])
+
+
 if __name__ == "__main__":
     unittest.main()
