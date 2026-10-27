@@ -2,14 +2,65 @@
 
 A HACS custom integration for reading published Local Link timetable pages and exposing departure times as Home Assistant sensors.
 
-> Early development: Route 188 is the first validation target. Do not rely on this integration for time-critical travel until multiple routes have been tested.
+> **Early development / experimental.** Route 188 is the first validation target. Do not rely on this integration for time-critical travel until multiple routes, directions, and service-day variations have been tested.
 
-## Development status
+This is an independent community project and is not affiliated with or endorsed by Local Link. It reads published timetable pages; it does not provide live vehicle tracking.
 
-- [ ] Route 188 timetable parser and tests
-- [ ] Next departure and countdown sensors
-- [ ] UI configuration flow
-- [ ] Validate additional Local Link route layouts
-- [ ] HACS release metadata and documentation
+## Current development status
 
-The integration is intended to read public timetable pages. It is not an official Local Link service and does not provide live vehicle tracking.
+- [x] Initial Home Assistant integration structure
+- [x] UI setup flow for a timetable URL and stop name
+- [x] Parser for adjacent timetable times such as `06:5708:23`
+- [x] Next departure, minutes-until, and full-departures sensors
+- [x] Unit tests for the two known Route 188 stop rows
+- [x] GitHub Actions parser test workflow
+- [ ] Verify live Route 188 page structure and both directions
+- [ ] Test multiple other Local Link route pages
+- [ ] Support timetable variations by weekday, weekend, and public holiday
+- [ ] Add route/stop discovery so users do not have to type a stop name
+- [ ] Review error handling, diagnostics, and HACS release readiness
+
+## Development installation
+
+The integration is not yet a stable HACS release.
+
+1. Copy `custom_components/local_link_timetables` into your Home Assistant `config/custom_components/` directory.
+2. Restart Home Assistant.
+3. Go to **Settings → Devices & services → Add integration**.
+4. Search for **Local Link Timetables**.
+5. Enter the timetable page URL, stop name as printed on the page, and a friendly name.
+
+For initial validation, use the Route 188 page:
+
+`https://locallinklmf.ie/tfi-route-188/`
+
+Example stop names from the known timetable rows are `Kentstown Church` and `Kennedy Road`. The parser validates that it can find a row containing the selected stop and times.
+
+## Sensors
+
+Each configured stop creates:
+
+- **Next departure** — the next listed time.
+- **Minutes until departure** — countdown in minutes, refreshed each minute without fetching the webpage every minute.
+- **Departures** — comma-separated times, with the full list also available as an attribute.
+
+The source timetable is fetched every 15 minutes. A failed fetch or parse is reported through Home Assistant's coordinator status and logs.
+
+## Important limitations
+
+- The first parser targets timetable rows containing a stop name and times. Local Link route pages may use different HTML structures, so compatibility with every route has not yet been established.
+- If the same stop name appears in multiple timetable rows, the current parser chooses the matching row containing the most times. Direction/section disambiguation is a planned improvement.
+- The countdown currently treats the listed times as a repeating daily timetable when all departures for the current day have passed. This is not suitable for routes with different weekday, weekend, or holiday schedules until service-day support is implemented.
+- Timetable data may change on the provider's website. Check the published timetable before travelling.
+
+## Tests
+
+Parser tests use Python's standard `unittest` runner and do not require a Home Assistant installation:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+## HACS
+
+HACS release metadata is included, but the project should not be treated as production-ready or added to the default HACS store until the remaining route compatibility and service-day tests are complete.
