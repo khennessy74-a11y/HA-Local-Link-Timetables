@@ -11,6 +11,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 
 from .const import (
     CONF_DIRECTION_HINT,
+    CONF_SERVICE_COLUMN,
     CONF_STOP_NAME,
     CONF_URL,
     DOMAIN,
@@ -28,6 +29,7 @@ class LocalLinkCoordinator(DataUpdateCoordinator[list[str]]):
         self.url = entry.data[CONF_URL]
         self.stop_name = entry.data[CONF_STOP_NAME]
         self.direction_hint = entry.data.get(CONF_DIRECTION_HINT, "")
+        self.service_column = entry.data.get(CONF_SERVICE_COLUMN, "")
         self.display_name = entry.data.get(CONF_NAME, self.stop_name)
         self.session = async_get_clientsession(hass)
         super().__init__(
@@ -47,7 +49,7 @@ class LocalLinkCoordinator(DataUpdateCoordinator[list[str]]):
             ) as response:
                 response.raise_for_status()
                 html = await response.text()
-            return parse_departures(html, self.stop_name, self.direction_hint)
+            return parse_departures(\n                html, self.stop_name, self.direction_hint, self.service_column\n            )
         except TimetableParseError as err:
             raise UpdateFailed(str(err)) from err
         except Exception as err:  # noqa: BLE001
