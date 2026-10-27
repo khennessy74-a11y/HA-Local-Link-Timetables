@@ -12,6 +12,7 @@ This is an independent community project and is not affiliated with or endorsed 
 - [x] UI setup flow for a timetable URL, stop name, and optional direction/section hint
 - [x] Parser for adjacent timetable times such as `06:5708:23`
 - [x] Reject ambiguous duplicate-stop rows instead of silently choosing the row with the most times
+- [x] Prefer exact stop-cell matches and use word-boundary matching to avoid similarly named stops
 - [x] Next departure, minutes-until, and full-departures sensors
 - [x] Unit tests for both known Route 188 stop rows and duplicate-stop selection
 - [x] GitHub Actions parser test workflow
