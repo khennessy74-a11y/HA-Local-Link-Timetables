@@ -41,7 +41,10 @@ def departures_for_date(
     """
     iso_date = service_date.isoformat()
     if iso_date in set(holiday_dates or ()):
-        return list(holiday_times or ())
+        return sorted(
+            list(holiday_times or ()),
+            key=lambda value: int(value[:2]) * 60 + int(value[3:]),
+        )
 
     active_days = {int(day) for day in service_days}
     if any(day < 0 or day > 6 for day in active_days):
