@@ -47,6 +47,43 @@ class StopIndexTests(unittest.TestCase):
             [{"value": "Kentstown Church", "label": "Kentstown Church"}],
         )
 
+    def test_route_189_uses_stop_name_not_stop_location_with_multi_departure_cells(self):
+        html = """
+        <table>
+          <tr><th>Stop Name</th><th>Stop Location</th><th>Mon–Fri</th><th>Mon–Sun &amp; Public Holidays</th></tr>
+          <tr><td>Enfield</td><td>Street Side Café</td><td>07:00</td><td>07:30</td><td>10:10</td><td>12:10</td></tr>
+          <tr><td>Enfield Station</td><td>Outside Train Station</td><td>07:01</td><td>07:31</td><td>10:11</td><td>12:11</td></tr>
+        </table>
+        """
+        self.assertEqual(
+            parse_stop_options(html),
+            [
+                {"value": "Enfield", "label": "Enfield"},
+                {"value": "Enfield Station", "label": "Enfield Station"},
+            ],
+        )
+
+    def test_separate_day_tables_deduplicate_shared_stops(self):
+        html = """
+        <table>
+          <tr><th>Stop</th><th>Depart</th></tr>
+          <tr><td>Longwood</td><td>09:00</td></tr>
+          <tr><td>Navan</td><td>10:05</td></tr>
+        </table>
+        <table>
+          <tr><th>Stop</th><th>Return</th></tr>
+          <tr><td>Navan</td><td>13:30</td></tr>
+          <tr><td>Longwood</td><td>14:20</td></tr>
+        </table>
+        """
+        self.assertEqual(
+            parse_stop_options(html),
+            [
+                {"value": "Longwood", "label": "Longwood"},
+                {"value": "Navan", "label": "Navan"},
+            ],
+        )
+
     def test_deduplicates_case_insensitively_and_ignores_header_rows(self):
         html = """
         <table>
