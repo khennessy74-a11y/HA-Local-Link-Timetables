@@ -1,0 +1,44 @@
+"""Unit tests for the timetable parser."""
+
+import unittest
+
+from custom_components.local_link_timetables.parser import (
+    TimetableParseError,
+    parse_departures,
+)
+
+
+class TimetableParserTests(unittest.TestCase):
+    """Test common timetable row formats."""
+
+    def test_route_188_kentstown_church(self):
+        html = """
+        <table><tr><td>Kentstown</td><td>Kentstown Church</td>
+        <td>137851P/S06:5708:2311:2613:2615:2017:2019:3620:42</td></tr></table>
+        """
+        self.assertEqual(
+            parse_departures(html, "Kentstown Church"),
+            ["06:57", "08:23", "11:26", "13:26", "15:20", "17:20", "19:36", "20:42"],
+        )
+
+    def test_route_188_kennedy_road(self):
+        html = """
+        <table><tr><td>Navan</td><td>Kennedy Road</td>
+        <td>189521P/S06:4507:5811:0513:0515:0517:0519:0520:47</td></tr></table>
+        """
+        self.assertEqual(
+            parse_departures(html, "Kennedy Road"),
+            ["06:45", "07:58", "11:05", "13:05", "15:05", "17:05", "19:05", "20:47"],
+        )
+
+    def test_case_and_whitespace_are_ignored(self):
+        html = "<table><tr><td>KENNEDY   ROAD</td><td>06:45 07:58</td></tr></table>"
+        self.assertEqual(parse_departures(html, "Kennedy Road"), ["06:45", "07:58"])
+
+    def test_missing_stop_raises(self):
+        with self.assertRaises(TimetableParseError):
+            parse_departures("<table><tr><td>Navan</td><td>06:45</td></tr></table>", "Kennedy Road")
+
+
+if __name__ == "__main__":
+    unittest.main()
