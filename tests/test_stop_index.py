@@ -35,6 +35,18 @@ class StopIndexTests(unittest.TestCase):
             ],
         )
 
+    def test_route_188_prefers_stop_column_over_departure_area(self):
+        html = """
+        <table>
+          <tr><th>Departs</th><th>Stops</th><th>Stop Number</th><th>Restriction</th><th>Mon–Sat (1 journey)</th></tr>
+          <tr><td>Kentstown</td><td>Kentstown Church</td><td>137851</td><td>P/S</td><td>06:57 08:23</td></tr>
+        </table>
+        """
+        self.assertEqual(
+            parse_stop_options(html),
+            [{"value": "Kentstown Church", "label": "Kentstown Church"}],
+        )
+
     def test_deduplicates_case_insensitively_and_ignores_header_rows(self):
         html = """
         <table>
