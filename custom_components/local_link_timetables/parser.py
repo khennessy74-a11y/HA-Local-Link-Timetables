@@ -227,7 +227,7 @@ def parse_departures(
         for table_row in parser.table_rows:
             cells = table_row["cells"]
             row_text = " ".join([table_row["heading"], *cells])
-            if not _row_matches_stop(cells, stop_name):
+            if not _row_matches_stop(cells, stop_name, exact_stop_exists):
                 continue
             if hint and not _contains_phrase(row_text, direction_hint or ""):
                 continue
