@@ -325,5 +325,46 @@ class TimetableParserTests(unittest.TestCase):
         )
 
 
+
+    def test_route_lh701_combines_services_within_selected_direction(self):
+        html = """
+        <h2>Dundalk → Carlingford</h2>
+        <h3>Service 1</h3>
+        <table><tr><td>Dundalk</td><td>10:45</td></tr></table>
+        <h3>Service 2</h3>
+        <table><tr><td>Dundalk</td><td>13:45</td></tr></table>
+        <h3>Service 3</h3>
+        <table><tr><td>Dundalk</td><td>16:45</td></tr></table>
+        <h2>Carlingford → Dundalk</h2>
+        <h3>Service 1</h3>
+        <table><tr><td>Dundalk</td><td>12:10</td></tr></table>
+        <h3>Service 2</h3>
+        <table><tr><td>Dundalk</td><td>15:10</td></tr></table>
+        <h3>Service 3</h3>
+        <table><tr><td>Dundalk</td><td>18:10</td></tr></table>
+        """
+        self.assertEqual(
+            parse_departures(html, "Dundalk", "Dundalk → Carlingford"),
+            ["10:45", "13:45", "16:45"],
+        )
+        self.assertEqual(
+            parse_departures(html, "Dundalk", "Carlingford → Dundalk"),
+            ["12:10", "15:10", "18:10"],
+        )
+
+    def test_weekday_sections_are_not_combined_without_day_selection(self):
+        html = """
+        <h2>Thursday – Outbound</h2>
+        <table><tr><td>Longwood</td><td>09:00</td></tr></table>
+        <h2>Friday – Outbound</h2>
+        <table><tr><td>Longwood</td><td>10:30</td></tr></table>
+        """
+        with self.assertRaises(AmbiguousTimetableError):
+            parse_departures(html, "Longwood", "Outbound")
+        self.assertEqual(
+            parse_departures(html, "Longwood", "Thursday"),
+            ["09:00"],
+        )
+
 if __name__ == "__main__":
     unittest.main()
