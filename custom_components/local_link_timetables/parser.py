@@ -366,6 +366,29 @@ def parse_weekday_departures(
         )
 
     row, header = candidates[0]
+
+    # Two differently labelled service columns may be alternatives rather than
+    # additive journeys. Only merge overlapping labels when the timetable
+    # explicitly identifies them as journey groups (as Route 188 does).
+    labelled = [
+        (heading, _service_days_from_header(heading))
+        for heading in header
+        if _service_days_from_header(heading)
+    ]
+    for index, (left_label, left_days) in enumerate(labelled):
+        for right_label, right_days in labelled[index + 1:]:
+            if left_days & right_days and _normalise(left_label) != _normalise(right_label):
+                journey_group = (
+                    "journey" in _normalise(left_label)
+                    and "journey" in _normalise(right_label)
+                )
+                if not journey_group:
+                    raise AmbiguousTimetableError(
+                        f"Stop '{stop_name}' has overlapping service columns "
+                        f"'{left_label}' and '{right_label}'. Set the service-column "
+                        "option to choose the intended timetable."
+                    )
+
     schedule: dict[int, list[str]] = {day: [] for day in range(7)}
     for index, heading in enumerate(header):
         if index >= len(row["cells"]):
