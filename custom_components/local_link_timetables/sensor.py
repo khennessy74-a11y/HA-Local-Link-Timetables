@@ -62,6 +62,8 @@ class LocalLinkBaseSensor(CoordinatorEntity[LocalLinkCoordinator], SensorEntity)
     def _times(self) -> list[str]:
         """Return departures for today, preserving the existing sensor shape."""
         data = self.coordinator.data or []
+        if dt_util.now().date().isoformat() in self.coordinator.holiday_dates and self.coordinator.holiday_times:
+            return self.coordinator.holiday_times
         if isinstance(data, dict):
             return data.get(dt_util.now().weekday(), [])
         return data
@@ -78,6 +80,8 @@ class LocalLinkBaseSensor(CoordinatorEntity[LocalLinkCoordinator], SensorEntity)
             self._schedule,
             dt_util.now(),
             self._config.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
+            holiday_dates=self.coordinator.holiday_dates,
+            holiday_times=self.coordinator.holiday_times,
         )
         return departure, minutes
 
@@ -88,6 +92,8 @@ class LocalLinkBaseSensor(CoordinatorEntity[LocalLinkCoordinator], SensorEntity)
             self._schedule,
             dt_util.now(),
             self._config.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
+            holiday_dates=self.coordinator.holiday_dates,
+            holiday_times=self.coordinator.holiday_times,
         )[2]
 
 
