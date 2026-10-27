@@ -121,6 +121,49 @@ class TimetableParserTests(unittest.TestCase):
             ["06:30", "07:40"],
         )
 
+    def test_service_column_header_does_not_leak_between_tables(self):
+        html = """
+        <h2>Outbound</h2>
+        <table>
+          <tr><th>Stop Name</th><th>Mon–Fri</th><th>Sunday</th></tr>
+          <tr><td>Shared Stop</td><td>06:30</td><td>09:00</td></tr>
+        </table>
+        <h2>Return</h2>
+        <table>
+          <tr><th>Stop Name</th><th>Saturday</th></tr>
+          <tr><td>Shared Stop</td><td>15:30</td></tr>
+        </table>
+        """
+        self.assertEqual(
+            parse_departures(html, "Shared Stop", "Outbound", "Mon–Fri"),
+            ["06:30"],
+        )
+        with self.assertRaises(TimetableParseError):
+            parse_departures(html, "Shared Stop", "Return", "Mon–Fri")
+
+    def test_route_189_style_weekday_and_holiday_columns(self):
+        html = """
+        <h2>Enfield to Navan</h2>
+        <table>
+          <tr><th>Stop Name</th><th>Stop Location</th><th>Mon–Fri</th><th>Mon–Sun &amp; Public Holidays</th></tr>
+          <tr><td>Enfield</td><td>Street Side Café</td><td>07:00</td>
+              <td>07:30 · 10:10 · 12:10 · 14:10</td></tr>
+          <tr><td>Longwood</td><td>Main Street</td><td>07:10</td>
+              <td>07:43 · 10:23 · 12:23 · 14:23</td></tr>
+        </table>
+        """
+        self.assertEqual(
+            parse_departures(html, "Longwood", service_column_hint="Mon–Fri"),
+            ["07:10"],
+        )
+        self.assertEqual(
+            parse_departures(
+                html, "Longwood",
+                service_column_hint="Mon–Sun & Public Holidays",
+            ),
+            ["07:43", "10:23", "12:23", "14:23"],
+        )
+
     def test_unknown_service_column_raises(self):
         html = """
         <table>
