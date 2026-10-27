@@ -36,10 +36,14 @@ def _contains_phrase(value: str, phrase: str) -> bool:
     return re.search(rf"(?<!\w){flexible_phrase}(?!\w)", normalized_value) is not None
 
 
-def _row_matches_stop(cells: list[str], stop_name: str) -> bool:
-    """Prefer an exact stop cell, then allow a whole-phrase cell match."""
+def _row_matches_stop(
+    cells: list[str], stop_name: str, exact_only: bool = False
+) -> bool:
+    """Prefer exact stop cells whenever the page contains an exact match."""
     target = _normalise(stop_name)
     normalized_cells = [_normalise(cell) for cell in cells]
+    if exact_only:
+        return target in normalized_cells
     if target in normalized_cells:
         return True
     return any(_contains_phrase(cell, target) for cell in cells)
@@ -165,6 +169,10 @@ def parse_departures(
     hint = _normalise(direction_hint or "")
     column_hint = (service_column_hint or "").strip()
     matches: list[list[str]] = []
+    exact_stop_exists = any(
+        target in [_normalise(cell) for cell in row["cells"]]
+        for row in parser.table_rows
+    )
 
     if column_hint:
         for row_position, table_row in enumerate(parser.table_rows):
@@ -172,7 +180,7 @@ def parse_departures(
             if table_row["is_header"]:
                 continue
             row_text = " ".join([table_row["heading"], *cells])
-            if not _row_matches_stop(cells, stop_name):
+            if not _row_matches_stop(cells, stop_name, exact_stop_exists):
                 continue
             if hint and not _contains_phrase(row_text, direction_hint or ""):
                 continue
