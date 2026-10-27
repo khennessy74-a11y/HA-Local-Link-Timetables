@@ -26,6 +26,25 @@ def _times(value: str) -> list[str]:
     return [f"{int(hour):02d}:{minute}" for hour, minute in _TIME_RE.findall(value)]
 
 
+def _contains_phrase(value: str, phrase: str) -> bool:
+    """Match a phrase on word boundaries while tolerating HTML whitespace."""
+    normalized_value = _normalise(value)
+    normalized_phrase = _normalise(phrase)
+    if not normalized_phrase:
+        return True
+    flexible_phrase = re.escape(normalized_phrase).replace(r"\ ", r"\s+")
+    return re.search(rf"(?<!\w){flexible_phrase}(?!\w)", normalized_value) is not None
+
+
+def _row_matches_stop(cells: list[str], stop_name: str) -> bool:
+    """Prefer an exact stop cell, then allow a whole-phrase cell match."""
+    target = _normalise(stop_name)
+    normalized_cells = [_normalise(cell) for cell in cells]
+    if target in normalized_cells:
+        return True
+    return any(_contains_phrase(cell, target) for cell in cells)
+
+
 class _TableRowParser(HTMLParser):
     """Collect row text, table cells, service headers, and section headings."""
 
@@ -153,8 +172,9 @@ def parse_departures(
             if table_row["is_header"]:
                 continue
             row_text = " ".join([table_row["heading"], *cells])
-            normalized_row = _normalise(row_text)
-            if target not in normalized_row or (hint and hint not in normalized_row):
+            if not _row_matches_stop(cells, stop_name):
+                continue
+            if hint and not _contains_phrase(row_text, direction_hint or ""):
                 continue
             # Locate the header from the same table section. Search backwards
             # for the most recent service header before this stop row.
@@ -182,13 +202,14 @@ def parse_departures(
             if times:
                 matches.append(times)
     else:
-        for row in parser.rows:
-            normalized_row = _normalise(row)
-            if target not in normalized_row:
+        for table_row in parser.table_rows:
+            cells = table_row["cells"]
+            row_text = " ".join([table_row["heading"], *cells])
+            if not _row_matches_stop(cells, stop_name):
                 continue
-            if hint and hint not in normalized_row:
+            if hint and not _contains_phrase(row_text, direction_hint or ""):
                 continue
-            times = _times(row)
+            times = _times(" ".join(cells))
             if times:
                 matches.append(times)
 
