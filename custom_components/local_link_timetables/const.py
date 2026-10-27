@@ -5,6 +5,7 @@ PLATFORM = "sensor"
 
 CONF_URL = "url"
 CONF_STOP_NAME = "stop_name"
+CONF_DIRECTION_HINT = "direction_hint"
 CONF_NAME = "name"
 
 DEFAULT_NAME = "Local Link"
