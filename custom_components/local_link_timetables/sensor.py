@@ -105,7 +105,7 @@ class LocalLinkNextDeparture(LocalLinkBaseSensor):
             "stop_name": self.coordinator.stop_name,
             "source_url": self.coordinator.url,
             "departures": self._times,
-            "service_days": self._entry.data.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
+            "service_days": self._config.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
             "next_service_date": self._next_service_date,
         }
 
