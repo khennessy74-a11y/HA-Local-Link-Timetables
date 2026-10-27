@@ -12,7 +12,8 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_STOP_NAME, DOMAIN
+from .const import CONF_SERVICE_DAYS, CONF_STOP_NAME, DEFAULT_SERVICE_DAYS, DOMAIN
+from .service_schedule import next_departure
 from .__init__ import LocalLinkCoordinator
 
 _LOGGER = logging.getLogger(__name__)
@@ -63,18 +64,22 @@ class LocalLinkBaseSensor(CoordinatorEntity[LocalLinkCoordinator], SensorEntity)
 
     @property
     def _next_departure(self) -> tuple[str | None, int | None]:
-        """Return next departure and minutes until it, rolling to tomorrow if needed."""
-        if not self._times:
-            return None, None
-        now = dt_util.now()
-        current = now.hour * 60 + now.minute
-        parsed = [(int(value[:2]) * 60 + int(value[3:]), value) for value in self._times]
-        future = [(minute, value) for minute, value in parsed if minute >= current]
-        if future:
-            minute, value = future[0]
-            return value, minute - current
-        minute, value = parsed[0]
-        return value, (24 * 60 - current) + minute
+        """Return the next departure on a configured service day."""
+        departure, minutes, _service_date = next_departure(
+            self._times,
+            dt_util.now(),
+            self._entry.data.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
+        )
+        return departure, minutes
+
+    @property
+    def _next_service_date(self) -> str | None:
+        """Return the date of the next departure, if one is scheduled."""
+        return next_departure(
+            self._times,
+            dt_util.now(),
+            self._entry.data.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
+        )[2]
 
 
 class LocalLinkNextDeparture(LocalLinkBaseSensor):
@@ -99,6 +104,8 @@ class LocalLinkNextDeparture(LocalLinkBaseSensor):
             "stop_name": self.coordinator.stop_name,
             "source_url": self.coordinator.url,
             "departures": self._times,
+            "service_days": self._entry.data.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
+            "next_service_date": self._next_service_date,
         }
 
 
@@ -125,6 +132,7 @@ class LocalLinkMinutesUntil(LocalLinkBaseSensor):
         return {
             "stop_name": self.coordinator.stop_name,
             "next_departure": self._next_departure[0],
+            "next_service_date": self._next_service_date,
         }
 
 
@@ -151,4 +159,5 @@ class LocalLinkDepartures(LocalLinkBaseSensor):
             "stop_name": self.coordinator.stop_name,
             "source_url": self.coordinator.url,
             "departures": self._times,
+            "service_days": self._entry.data.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
         }
