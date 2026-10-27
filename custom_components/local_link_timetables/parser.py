@@ -4,7 +4,7 @@ from html.parser import HTMLParser
 import re
 import unicodedata
 
-_TIME_RE = re.compile(r"([01]?\d|2[0-3]):([0-5]\d)")
+_TIME_RE = re.compile(r"(?<!\d)([01]?\d|2[0-3]):([0-5]\d)(?!\d)")
 _SERVICE_WORDS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun", "holiday", "daily")
 
 
