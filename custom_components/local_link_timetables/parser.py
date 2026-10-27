@@ -307,14 +307,15 @@ def _service_days_from_header(value: str) -> set[int]:
         return set()
     days = {_DAY_NAMES[match.group(1)] for match in matches}
 
-    # Expand an explicitly written range, retaining any extra named days.
-    # For example, "Mon–Fri & Sunday" covers Monday through Friday and Sunday.
-    if len(matches) >= 2 and re.search(
-        r"(?:-|\bto\b|\bthrough\b|\bthru\b)",
-        text[matches[0].end():matches[1].start()],
-    ):
-        start_day = _DAY_NAMES[matches[0].group(1)]
-        end_day = _DAY_NAMES[matches[1].group(1)]
+    # Expand every explicitly written range, retaining standalone days.
+    # For example, "Mon, Wed–Fri" covers Monday and Wednesday through Friday.
+    range_separator = re.compile(r"(?:-|\\bto\\b|\\bthrough\\b|\\bthru\\b)")
+    for left, right in zip(matches, matches[1:]):
+        between = text[left.end():right.start()]
+        if not range_separator.search(between):
+            continue
+        start_day = _DAY_NAMES[left.group(1)]
+        end_day = _DAY_NAMES[right.group(1)]
         day = start_day
         while True:
             days.add(day)
