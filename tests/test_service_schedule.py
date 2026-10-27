@@ -75,7 +75,7 @@ class ServiceScheduleTests(unittest.TestCase):
         # Sunday has no configured schedule, so next service is Monday.
         self.assertEqual(
             next_departure(schedule, datetime(2026, 11, 1, 8, 0), ["0", "5", "6"]),
-            ("06:30", 1320, "2026-11-02"),
+            ("06:30", 1350, "2026-11-02"),
         )
 
     def test_weekday_specific_schedule_does_not_reuse_weekday_times_on_sunday(self):
