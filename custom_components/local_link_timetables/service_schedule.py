@@ -16,7 +16,7 @@ def validate_holiday_calendar_response(response: object, entity_id: str) -> None
 
 
 def holiday_dates_from_response(response: object, entity_id: str) -> set[str]:
-    """Extract valid ISO dates from a Home Assistant calendar service response."
+    """Extract valid ISO dates from a Home Assistant calendar service response."""
     if not isinstance(response, Mapping):
         return set()
     calendar_data = response.get(entity_id, {})
