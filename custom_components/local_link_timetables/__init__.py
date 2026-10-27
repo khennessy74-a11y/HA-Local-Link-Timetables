@@ -17,12 +17,12 @@ from .const import (
     DOMAIN,
     SCAN_INTERVAL_MINUTES,
 )
-from .parser import TimetableParseError, parse_departures
+from .parser import TimetableParseError, parse_departures, parse_weekday_departures
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class LocalLinkCoordinator(DataUpdateCoordinator[list[str]]):
+class LocalLinkCoordinator(DataUpdateCoordinator[list[str] | dict[int, list[str]]]):
     """Fetch and parse departures for a configured stop."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -40,7 +40,7 @@ class LocalLinkCoordinator(DataUpdateCoordinator[list[str]]):
             update_interval=timedelta(minutes=SCAN_INTERVAL_MINUTES),
         )
 
-    async def _async_update_data(self) -> list[str]:
+    async def _async_update_data(self) -> list[str] | dict[int, list[str]]:
         """Download the timetable and return times for the selected stop."""
         try:
             async with self.session.get(
@@ -50,6 +50,12 @@ class LocalLinkCoordinator(DataUpdateCoordinator[list[str]]):
             ) as response:
                 response.raise_for_status()
                 html = await response.text()
+            if not self.service_column:
+                weekday_schedule = parse_weekday_departures(
+                    html, self.stop_name, self.direction_hint
+                )
+                if weekday_schedule is not None:
+                    return weekday_schedule
             return parse_departures(
                 html, self.stop_name, self.direction_hint, self.service_column
             )
