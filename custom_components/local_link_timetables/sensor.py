@@ -69,7 +69,7 @@ class LocalLinkBaseSensor(CoordinatorEntity[LocalLinkCoordinator], SensorEntity)
         now = dt_util.now()
         current = now.hour * 60 + now.minute
         parsed = [(int(value[:2]) * 60 + int(value[3:]), value) for value in self._times]
-        future = [(minute, value) for minute, value in parsed if minute > current]
+        future = [(minute, value) for minute, value in parsed if minute >= current]
         if future:
             minute, value = future[0]
             return value, minute - current
