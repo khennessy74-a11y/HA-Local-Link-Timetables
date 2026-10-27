@@ -24,7 +24,11 @@ from .const import (
 from .parser import AmbiguousTimetableError, TimetableParseError, parse_departures, parse_holiday_departures, parse_weekday_departures
 from .route_index import INDEX_URL, parse_route_index
 from .stop_index import parse_stop_options
-from .validation import entry_identity as _entry_identity, valid_timetable_url as _valid_timetable_url
+from .validation import (
+    entry_identity as _entry_identity,
+    valid_timetable_url as _valid_timetable_url,
+    validate_config_values,
+)
 
 
 def _config_schema(defaults: dict, route_options: list[dict[str, str]] | None = None) -> vol.Schema:
@@ -127,18 +131,11 @@ async def _fetch_page(hass: HomeAssistant, url: str) -> str:
 async def _validate_input(hass: HomeAssistant, data: dict) -> str | None:
     """Validate the URL, stop, and optional direction hint against the live page."""
     url = data[CONF_URL].strip()
-    if not data.get(CONF_STOP_NAME, "").strip():
-        return "stop_name_required"
-    if not data.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS):
-        return "service_days"
+    field_error = validate_config_values(data)
+    if field_error:
+        return field_error
     if not _valid_timetable_url(url):
         return "invalid_url"
-    if data.get(CONF_HOLIDAY_COLUMN) and not data.get(CONF_SERVICE_COLUMN):
-        return "holiday_service_column_required"
-    if data.get(CONF_HOLIDAY_COLUMN) and not data.get(CONF_HOLIDAY_CALENDAR):
-        return "holiday_calendar_required"
-    if data.get(CONF_HOLIDAY_CALENDAR) and not data.get(CONF_HOLIDAY_COLUMN):
-        return "holiday_column_required"
 
     try:
         html = await _fetch_page(hass, url)

@@ -59,6 +59,57 @@ class TimetableUrlValidationTests(unittest.TestCase):
         self.assertFalse(VALIDATION.valid_timetable_url(None))
 
 
+class ConfigValueValidationTests(unittest.TestCase):
+    def valid_data(self):
+        return {
+            "stop_name": "Kentstown Church",
+            "service_days": ["0", "2", "5"],
+            "service_column": "Mon–Fri",
+            "holiday_column": "",
+            "holiday_calendar": "",
+        }
+
+    def test_accepts_valid_basic_configuration(self):
+        self.assertIsNone(VALIDATION.validate_config_values(self.valid_data()))
+
+    def test_rejects_missing_stop_or_empty_service_days(self):
+        data = self.valid_data()
+        data["stop_name"] = "  "
+        self.assertEqual(VALIDATION.validate_config_values(data), "stop_name_required")
+        data = self.valid_data()
+        data["service_days"] = []
+        self.assertEqual(VALIDATION.validate_config_values(data), "service_days")
+
+    def test_rejects_invalid_weekday_values_and_wrong_container_type(self):
+        for days in (["7"], ["-1"], ["weekday"], "012", None):
+            with self.subTest(days=days):
+                data = self.valid_data()
+                data["service_days"] = days
+                self.assertEqual(VALIDATION.validate_config_values(data), "service_days")
+
+    def test_holiday_column_requires_ordinary_column_and_calendar(self):
+        data = self.valid_data()
+        data["holiday_column"] = "Public Holidays"
+        self.assertEqual(
+            VALIDATION.validate_config_values(data),
+            "holiday_calendar_required",
+        )
+        data["holiday_calendar"] = "calendar.public_holidays"
+        data["service_column"] = ""
+        self.assertEqual(
+            VALIDATION.validate_config_values(data),
+            "holiday_service_column_required",
+        )
+
+    def test_calendar_requires_holiday_column(self):
+        data = self.valid_data()
+        data["holiday_calendar"] = "calendar.public_holidays"
+        self.assertEqual(
+            VALIDATION.validate_config_values(data),
+            "holiday_column_required",
+        )
+
+
 class EntryIdentityTests(unittest.TestCase):
     def test_identity_ignores_case_spacing_and_trailing_slash(self):
         first = {
