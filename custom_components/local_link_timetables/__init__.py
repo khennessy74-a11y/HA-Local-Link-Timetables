@@ -9,7 +9,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import CONF_STOP_NAME, CONF_URL, DOMAIN, SCAN_INTERVAL_MINUTES
+from .const import (
+    CONF_DIRECTION_HINT,
+    CONF_STOP_NAME,
+    CONF_URL,
+    DOMAIN,
+    SCAN_INTERVAL_MINUTES,
+)
 from .parser import TimetableParseError, parse_departures
 
 _LOGGER = logging.getLogger(__name__)
@@ -21,6 +27,7 @@ class LocalLinkCoordinator(DataUpdateCoordinator[list[str]]):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.url = entry.data[CONF_URL]
         self.stop_name = entry.data[CONF_STOP_NAME]
+        self.direction_hint = entry.data.get(CONF_DIRECTION_HINT, "")
         self.display_name = entry.data.get(CONF_NAME, self.stop_name)
         self.session = async_get_clientsession(hass)
         super().__init__(
@@ -40,7 +47,7 @@ class LocalLinkCoordinator(DataUpdateCoordinator[list[str]]):
             ) as response:
                 response.raise_for_status()
                 html = await response.text()
-            return parse_departures(html, self.stop_name)
+            return parse_departures(html, self.stop_name, self.direction_hint)
         except TimetableParseError as err:
             raise UpdateFailed(str(err)) from err
         except Exception as err:  # noqa: BLE001
