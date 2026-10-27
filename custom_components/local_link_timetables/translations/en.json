@@ -16,7 +16,9 @@
           "direction_hint": "Direction / section text (optional)",
           "service_column": "Service column header (optional, e.g. Mon–Fri)",
           "name": "Friendly name",
-          "service_days": "Days this timetable operates"
+          "service_days": "Days this timetable operates",
+          "holiday_column": "Public-holiday service column header (optional)",
+          "holiday_calendar": "Dedicated public-holiday calendar (optional)"
         }
       }
     },
@@ -26,7 +28,9 @@
       "ambiguous_stop": "The stop or timetable has multiple possible matches. Add a direction/section hint or select a service-column heading to choose the intended timetable.",
       "cannot_connect": "Could not load the timetable page. Check the URL and try again.",
       "service_days": "Select at least one day of the week.",
-      "stop_list_unavailable": "Could not discover stop names from this page. You can still type the stop name manually."
+      "stop_list_unavailable": "Could not discover stop names from this page. You can still type the stop name manually.",
+      "holiday_calendar_required": "Choose a public-holiday calendar when configuring a holiday service column.",
+      "holiday_service_column_required": "Choose the ordinary service column as well as the public-holiday column."
     },
     "abort": {
       "already_configured": "This timetable page, stop, and direction are already configured."
