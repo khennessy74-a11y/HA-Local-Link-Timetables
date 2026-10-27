@@ -1,6 +1,7 @@
 """Local Link Timetables integration."""
 
 from datetime import timedelta
+from datetime import date as date_type
 import logging
 
 from homeassistant.config_entries import ConfigEntry
@@ -8,16 +9,19 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_DIRECTION_HINT,
+    CONF_HOLIDAY_CALENDAR,
+    CONF_HOLIDAY_COLUMN,
     CONF_SERVICE_COLUMN,
     CONF_STOP_NAME,
     CONF_URL,
     DOMAIN,
     SCAN_INTERVAL_MINUTES,
 )
-from .parser import TimetableParseError, parse_departures, parse_weekday_departures
+from .parser import TimetableParseError, parse_departures, parse_holiday_departures, parse_weekday_departures
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,6 +35,10 @@ class LocalLinkCoordinator(DataUpdateCoordinator[list[str] | dict[int, list[str]
         self.stop_name = self.config[CONF_STOP_NAME]
         self.direction_hint = self.config.get(CONF_DIRECTION_HINT, "")
         self.service_column = self.config.get(CONF_SERVICE_COLUMN, "")
+        self.holiday_column = self.config.get(CONF_HOLIDAY_COLUMN, "")
+        self.holiday_calendar = self.config.get(CONF_HOLIDAY_CALENDAR, "")
+        self.holiday_dates: set[str] = set()
+        self.holiday_times: list[str] = []
         self.display_name = self.config.get(CONF_NAME, self.stop_name)
         self.session = async_get_clientsession(hass)
         super().__init__(
@@ -50,6 +58,13 @@ class LocalLinkCoordinator(DataUpdateCoordinator[list[str] | dict[int, list[str]
             ) as response:
                 response.raise_for_status()
                 html = await response.text()
+            if self.holiday_column:
+                self.holiday_times = parse_holiday_departures(
+                    html, self.stop_name, self.holiday_column, self.direction_hint
+                )
+            else:
+                self.holiday_times = []
+            await self._async_update_holiday_dates()
             if not self.service_column:
                 weekday_schedule = parse_weekday_departures(
                     html, self.stop_name, self.direction_hint
@@ -63,6 +78,40 @@ class LocalLinkCoordinator(DataUpdateCoordinator[list[str] | dict[int, list[str]
             raise UpdateFailed(str(err)) from err
         except Exception as err:  # noqa: BLE001
             raise UpdateFailed(f"Unable to retrieve Local Link timetable: {err}") from err
+
+
+    async def _async_update_holiday_dates(self) -> None:
+        """Read events from the configured public-holiday calendar."""
+        self.holiday_dates = set()
+        if not self.holiday_calendar or not self.holiday_column:
+            return
+        start = dt_util.now()
+        end = start + timedelta(days=15)
+        try:
+            response = await self.hass.services.async_call(
+                "calendar",
+                "get_events",
+                {
+                    "entity_id": self.holiday_calendar,
+                    "start_date_time": start.isoformat(),
+                    "end_date_time": end.isoformat(),
+                },
+                blocking=True,
+                return_response=True,
+            )
+            calendar_data = (response or {}).get(self.holiday_calendar, {})
+            for event in calendar_data.get("events", []):
+                value = str(event.get("start", ""))[:10]
+                try:
+                    self.holiday_dates.add(date_type.fromisoformat(value).isoformat())
+                except ValueError:
+                    _LOGGER.warning("Ignoring unrecognised holiday calendar date: %s", value)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning(
+                "Could not read configured holiday calendar %s: %s",
+                self.holiday_calendar,
+                err,
+            )
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
