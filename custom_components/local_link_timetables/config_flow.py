@@ -59,7 +59,11 @@ def _details_schema(
                 else str
             ),
             vol.Optional(CONF_DIRECTION_HINT, default=defaults.get(CONF_DIRECTION_HINT, "")): str,
-            vol.Optional(CONF_SERVICE_COLUMN, default=defaults.get(CONF_SERVICE_COLUMN, "")): str,\n            vol.Optional(CONF_HOLIDAY_COLUMN, default=defaults.get(CONF_HOLIDAY_COLUMN, "")): str,\n            vol.Optional(CONF_HOLIDAY_CALENDAR, default=defaults.get(CONF_HOLIDAY_CALENDAR, "")): selector.EntitySelector(selector.EntitySelectorConfig(domain="calendar")),\n            vol.Optional(CONF_HOLIDAY_COLUMN, default=defaults.get(CONF_HOLIDAY_COLUMN, "")): str,\n            vol.Optional(CONF_HOLIDAY_CALENDAR, default=defaults.get(CONF_HOLIDAY_CALENDAR, "")): selector.EntitySelector(selector.EntitySelectorConfig(domain="calendar")),
+            vol.Optional(CONF_SERVICE_COLUMN, default=defaults.get(CONF_SERVICE_COLUMN, "")): str,
+            vol.Optional(CONF_HOLIDAY_COLUMN, default=defaults.get(CONF_HOLIDAY_COLUMN, "")): str,
+            vol.Optional(CONF_HOLIDAY_CALENDAR): selector.EntitySelector(
+                selector.EntitySelectorConfig(domain="calendar")
+            ),
             vol.Required(
                 CONF_SERVICE_DAYS,
                 default=defaults.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
@@ -73,22 +77,24 @@ def _details_schema(
 
 def _options_schema(defaults: dict) -> vol.Schema:
     """Build the editable options form; preserve manual URL and stop entry."""
-    return vol.Schema(
-        {
-            vol.Required(CONF_URL, default=defaults.get(CONF_URL, "https://locallinklmf.ie/tfi-route-188/")): str,
-            vol.Required(CONF_STOP_NAME, default=defaults.get(CONF_STOP_NAME, "")): str,
-            vol.Optional(CONF_DIRECTION_HINT, default=defaults.get(CONF_DIRECTION_HINT, "")): str,
-            vol.Optional(CONF_SERVICE_COLUMN, default=defaults.get(CONF_SERVICE_COLUMN, "")): str,
-            vol.Required(
-                CONF_SERVICE_DAYS,
-                default=defaults.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
-            ): selector.SelectSelector(
-                selector.SelectSelectorConfig(options=WEEKDAY_OPTIONS, multiple=True)
-            ),
-            vol.Optional(CONF_NAME, default=defaults.get(CONF_NAME, DEFAULT_NAME)): str,
-        }
-    )
-
+    schema = {
+        vol.Required(CONF_URL, default=defaults.get(CONF_URL, "https://locallinklmf.ie/tfi-route-188/")): str,
+        vol.Required(CONF_STOP_NAME, default=defaults.get(CONF_STOP_NAME, "")): str,
+        vol.Optional(CONF_DIRECTION_HINT, default=defaults.get(CONF_DIRECTION_HINT, "")): str,
+        vol.Optional(CONF_SERVICE_COLUMN, default=defaults.get(CONF_SERVICE_COLUMN, "")): str,
+        vol.Optional(CONF_HOLIDAY_COLUMN, default=defaults.get(CONF_HOLIDAY_COLUMN, "")): str,
+        vol.Optional(CONF_HOLIDAY_CALENDAR): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="calendar")
+        ),
+        vol.Required(
+            CONF_SERVICE_DAYS,
+            default=defaults.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
+        ): selector.SelectSelector(
+            selector.SelectSelectorConfig(options=WEEKDAY_OPTIONS, multiple=True)
+        ),
+        vol.Optional(CONF_NAME, default=defaults.get(CONF_NAME, DEFAULT_NAME)): str,
+    }
+    return vol.Schema(schema)
 
 def _clean_input(data: dict) -> dict:
     """Normalize form values before validating or saving them."""
