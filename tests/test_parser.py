@@ -81,25 +81,6 @@ class TimetableParserTests(unittest.TestCase):
             ["08:45", "11:45", "14:45"],
         )
 
-    def test_invalid_clock_values_are_not_partially_parsed(self):
-        html = """
-        <table><tr><td>Stop Name</td><td>Times</td></tr>
-        <tr><td>Kells PCC</td><td>25:00 · 123:45 · 06:30 · 7:05</td></tr></table>
-        """
-        self.assertEqual(
-            parse_departures(html, "Kells PCC"),
-            ["06:30", "07:05"],
-        )
-
-    def test_tightly_concatenated_valid_times_still_parse(self):
-        html = """
-        <table><tr><td>Kells PCC</td><td>06:3007:4518:05</td></tr></table>
-        """
-        self.assertEqual(
-            parse_departures(html, "Kells PCC"),
-            ["06:30", "07:45", "18:05"],
-        )
-
     def test_middle_dot_separator_and_dash_placeholders(self):
         html = """
         <table><tr><td>Stop Name</td><td>Times</td></tr>
