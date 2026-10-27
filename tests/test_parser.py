@@ -214,5 +214,83 @@ class TimetableParserTests(unittest.TestCase):
             )
 
 
+    def test_route_195_outbound_single_service_column(self):
+        """Route 195 outbound uses a single Sunday/holiday service column."""
+        html = """
+        <h2>Ashbourne to Balbriggan</h2>
+        <table>
+          <tr><th>Stop Name</th><th>Stop Location</th><th>Stop No</th>
+              <th>Monday – Sunday &amp; Public Holidays</th></tr>
+          <tr><td>Ashbourne</td><td>Town Centre</td><td>12345</td>
+              <td>07:30 · 10:30 · 13:30 · 16:15 · 18:45 · 22:05</td></tr>
+        </table>
+        """
+        self.assertEqual(
+            parse_departures(
+                html, "Ashbourne",
+                service_column_hint="Monday – Sunday & Public Holidays",
+            ),
+            ["07:30", "10:30", "13:30", "16:15", "18:45", "22:05"],
+        )
+
+    def test_route_195_return_distinguishes_weekday_and_sunday_columns(self):
+        """Route 195 return has separate Mon–Sat and Sunday/holiday columns."""
+        html = """
+        <h2>Balbriggan to Ashbourne</h2>
+        <table>
+          <tr><th>Stop Name</th><th>Stop Location</th><th>Stop No</th>
+              <th>Mon–Sat</th><th>Monday – Sunday &amp; Public Holidays</th></tr>
+          <tr><td>Balbriggan Station</td><td>Railway Street</td><td>12345</td>
+              <td>—</td><td>08:45 · 11:45 · 14:45 · 17:25 · 20:25</td></tr>
+          <tr><td>Balbriggan Library</td><td>Main Street</td><td>12346</td>
+              <td>08:50 · 11:50</td><td>08:50 · 11:50 · 14:50</td></tr>
+        </table>
+        """
+        self.assertEqual(
+            parse_departures(
+                html, "Balbriggan Station",
+                direction_hint="Balbriggan to Ashbourne",
+                service_column_hint="Monday – Sunday & Public Holidays",
+            ),
+            ["08:45", "11:45", "14:45", "17:25", "20:25"],
+        )
+        self.assertEqual(
+            parse_departures(
+                html, "Balbriggan Library",
+                service_column_hint="Mon–Sat",
+            ),
+            ["08:50", "11:50"],
+        )
+
+    def test_route_195_empty_selected_service_column_does_not_fall_back(self):
+        """A dash in the selected column must not leak times from another service."""
+        html = """
+        <table>
+          <tr><th>Stop Name</th><th>Mon–Sat</th><th>Sunday</th></tr>
+          <tr><td>Balbriggan Station</td><td>—</td><td>08:45 · 11:45</td></tr>
+        </table>
+        """
+        with self.assertRaises(TimetableParseError):
+            parse_departures(
+                html, "Balbriggan Station", service_column_hint="Mon–Sat"
+            )
+
+    def test_service_column_does_not_use_header_from_another_table(self):
+        html = """
+        <h2>Outbound</h2>
+        <table>
+          <tr><th>Stop Name</th><th>Mon–Fri</th></tr>
+          <tr><td>Shared Stop</td><td>06:30</td></tr>
+        </table>
+        <h2>Return</h2>
+        <table>
+          <tr><th>Stop Name</th><th>Saturday</th></tr>
+          <tr><td>Shared Stop</td><td>15:30</td></tr>
+        </table>
+        """
+        with self.assertRaises(TimetableParseError):
+            parse_departures(html, "Shared Stop", "Return", "Mon–Fri")
+
+
 if __name__ == "__main__":
     unittest.main()
