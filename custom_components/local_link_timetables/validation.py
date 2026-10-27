@@ -67,3 +67,28 @@ def validate_config_values(data: dict) -> str | None:
     if holiday_calendar and not holiday_column:
         return "holiday_column_required"
     return None
+
+
+def is_duplicate_entry(
+    candidate: dict,
+    entries: object,
+    exclude_entry_id: str | None = None,
+) -> bool:
+    """Detect a matching entry, optionally excluding the entry being edited.
+
+    Options override original data, matching the effective configuration at runtime.
+    """
+    if not isinstance(entries, (list, tuple)):
+        return False
+    identity = entry_identity(candidate)
+    for entry in entries:
+        entry_id = getattr(entry, "entry_id", None)
+        if exclude_entry_id is not None and entry_id == exclude_entry_id:
+            continue
+        data = getattr(entry, "data", {})
+        options = getattr(entry, "options", {})
+        if not isinstance(data, dict) or not isinstance(options, dict):
+            continue
+        if entry_identity({**data, **options}) == identity:
+            return True
+    return False

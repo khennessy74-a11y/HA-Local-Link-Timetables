@@ -110,6 +110,52 @@ class ConfigValueValidationTests(unittest.TestCase):
         )
 
 
+class DuplicateEntryTests(unittest.TestCase):
+    class Entry:
+        def __init__(self, entry_id, data, options=None):
+            self.entry_id = entry_id
+            self.data = data
+            self.options = options or {}
+
+    def candidate(self):
+        return {
+            "url": "https://locallinklmf.ie/tfi-route-188/",
+            "stop_name": "Kentstown Church",
+            "direction_hint": "Outbound",
+            "service_column": "Mon–Fri",
+        }
+
+    def test_detects_duplicate_using_effective_data_and_options(self):
+        entry = self.Entry(
+            "existing",
+            {"url": "https://locallinklmf.ie/tfi-route-188/", "stop_name": "Other"},
+            {"stop_name": "Kentstown Church", "direction_hint": "Outbound", "service_column": "Mon–Fri"},
+        )
+        self.assertTrue(VALIDATION.is_duplicate_entry(self.candidate(), [entry]))
+
+    def test_editing_entry_does_not_duplicate_itself(self):
+        entry = self.Entry("same", self.candidate())
+        self.assertFalse(
+            VALIDATION.is_duplicate_entry(self.candidate(), [entry], exclude_entry_id="same")
+        )
+
+    def test_different_stop_or_column_is_not_a_duplicate(self):
+        entry = self.Entry("other", self.candidate())
+        self.assertFalse(
+            VALIDATION.is_duplicate_entry(
+                {**self.candidate(), "stop_name": "Navan"}, [entry]
+            )
+        )
+        self.assertFalse(
+            VALIDATION.is_duplicate_entry(
+                {**self.candidate(), "service_column": "Sunday"}, [entry]
+            )
+        )
+
+    def test_ignores_unusable_entry_objects_safely(self):
+        self.assertFalse(VALIDATION.is_duplicate_entry(self.candidate(), [object(), None]))
+
+
 class EntryIdentityTests(unittest.TestCase):
     def test_identity_ignores_case_spacing_and_trailing_slash(self):
         first = {

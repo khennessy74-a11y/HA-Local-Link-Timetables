@@ -26,6 +26,7 @@ from .route_index import INDEX_URL, parse_route_index
 from .stop_index import parse_stop_options
 from .validation import (
     entry_identity as _entry_identity,
+    is_duplicate_entry,
     valid_timetable_url as _valid_timetable_url,
     validate_config_values,
 )
@@ -216,11 +217,8 @@ class LocalLinkTimetablesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             error = await _validate_input(self.hass, data)
             if error is None:
                 identity = _entry_identity(data)
-                duplicate = any(
-                    _entry_identity({**entry.data, **entry.options}) == identity
-                    for entry in self.hass.config_entries.async_entries(DOMAIN)
-                )
-                if duplicate:
+                entries = self.hass.config_entries.async_entries(DOMAIN)
+                if is_duplicate_entry(data, entries):
                     errors["base"] = "already_configured"
                 else:
                     # Also catch entries created by older versions with a
@@ -270,13 +268,10 @@ class LocalLinkTimetablesOptionsFlow(config_entries.OptionsFlow):
             user_input = _clean_input(user_input)
             error = await _validate_input(self.hass, user_input)
             if error is None:
-                identity = _entry_identity(user_input)
-                duplicate = any(
-                    entry.entry_id != self.config_entry.entry_id
-                    and _entry_identity({**entry.data, **entry.options}) == identity
-                    for entry in self.hass.config_entries.async_entries(DOMAIN)
-                )
-                if duplicate:
+                entries = self.hass.config_entries.async_entries(DOMAIN)
+                if is_duplicate_entry(
+                    user_input, entries, exclude_entry_id=self.config_entry.entry_id
+                ):
                     error = "already_configured"
                 else:
                     return self.async_create_entry(title="", data=user_input)
