@@ -3,12 +3,13 @@
     "step": {
       "user": {
         "title": "Add a Local Link timetable",
-        "description": "Enter the published Local Link timetable page and stop name. If the stop appears more than once, add text from the desired direction/section row.",
+        "description": "Enter the published Local Link timetable page and stop name. Select the days this configured timetable operates. If the stop appears more than once, add text from the desired direction/section row.",
         "data": {
           "url": "Timetable page URL",
           "stop_name": "Stop name",
           "direction_hint": "Direction / section text (optional)",
-          "name": "Friendly name"
+          "name": "Friendly name",
+          "service_days": "Days this timetable operates"
         }
       }
     },
@@ -16,7 +17,8 @@
       "invalid_url": "Use an HTTPS timetable page hosted on locallinklmf.ie.",
       "stop_not_found": "No timetable row with departure times matched that stop and direction text.",
       "ambiguous_stop": "This stop has different times in multiple rows. Enter direction/section text that appears in the desired row.",
-      "cannot_connect": "Could not load the timetable page. Check the URL and try again."
+      "cannot_connect": "Could not load the timetable page. Check the URL and try again.",
+      "service_days": "Select at least one day of the week."
     },
     "abort": {
       "already_configured": "This timetable page, stop, and direction are already configured."
