@@ -13,13 +13,14 @@ from .const import (
     DOMAIN,
 )
 
-# Redact both the underlying values and labels that can repeat stop details.
+# Redact both underlying values and labels that can repeat stop details.
 TO_REDACT = {
     CONF_DIRECTION_HINT,
     CONF_HOLIDAY_CALENDAR,
     CONF_NAME,
     CONF_STOP_NAME,
     CONF_URL,
+    "title",
 }
 
 

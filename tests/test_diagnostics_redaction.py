@@ -71,7 +71,7 @@ for _name, _module in _saved_modules.items():
 
 
 class DiagnosticsRedactionTests(unittest.TestCase):
-    def test_redacts_stop_route_and_calendar_details_including_friendly_name(self):
+    def test_redacts_stop_route_and_calendar_details_including_title(self):
         entry = {
             "title": "Kentstown Church outbound",
             "data": {
@@ -85,13 +85,13 @@ class DiagnosticsRedactionTests(unittest.TestCase):
             "options": {},
         }
         redacted = async_redact_data(entry, DIAGNOSTICS.TO_REDACT)
+        self.assertEqual(redacted["title"], "**REDACTED**")
         self.assertEqual(redacted["data"]["url"], "**REDACTED**")
         self.assertEqual(redacted["data"]["stop_name"], "**REDACTED**")
         self.assertEqual(redacted["data"]["direction_hint"], "**REDACTED**")
         self.assertEqual(redacted["data"]["name"], "**REDACTED**")
         self.assertEqual(redacted["data"]["holiday_calendar"], "**REDACTED**")
         self.assertEqual(redacted["data"]["service_days"], ["0", "1"])
-        self.assertEqual(redacted["title"], "Kentstown Church outbound")
 
     def test_sensitive_fields_are_in_the_redaction_contract(self):
         self.assertTrue(
@@ -101,6 +101,7 @@ class DiagnosticsRedactionTests(unittest.TestCase):
                 "direction_hint",
                 "name",
                 "holiday_calendar",
+                "title",
             }.issubset(DIAGNOSTICS.TO_REDACT)
         )
 
