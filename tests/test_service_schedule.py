@@ -60,6 +60,19 @@ class ServiceScheduleTests(unittest.TestCase):
                         response, "calendar.public_holidays"
                     )
 
+    def test_calendar_response_validation_rejects_malformed_events(self):
+        malformed_responses = (
+            {"calendar.public_holidays": {"events": [None]}},
+            {"calendar.public_holidays": {"events": [{"summary": "Missing start"}]}},
+            {"calendar.public_holidays": {"events": [{"start": "not-a-date"}]}},
+        )
+        for response in malformed_responses:
+            with self.subTest(response=response):
+                with self.assertRaises(ValueError):
+                    validate_holiday_calendar_response(
+                        response, "calendar.public_holidays"
+                    )
+
     def test_calendar_response_handles_missing_or_malformed_payload(self):
         self.assertEqual(holiday_dates_from_response(None, "calendar.holidays"), set())
         self.assertEqual(holiday_dates_from_response({}, "calendar.holidays"), set())

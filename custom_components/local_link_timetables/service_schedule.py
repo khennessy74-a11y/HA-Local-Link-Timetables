@@ -11,8 +11,21 @@ def validate_holiday_calendar_response(response: object, entity_id: str) -> None
     calendar_data = response.get(entity_id)
     if not isinstance(calendar_data, Mapping):
         raise ValueError(f"Holiday calendar response did not include {entity_id}.")
-    if not isinstance(calendar_data.get("events"), list):
+    events = calendar_data.get("events")
+    if not isinstance(events, list):
         raise ValueError("Holiday calendar response did not contain an events list.")
+    for index, event in enumerate(events):
+        if not isinstance(event, Mapping):
+            raise ValueError(f"Holiday calendar event {index} is malformed.")
+        start = event.get("start")
+        if not isinstance(start, str) or len(start) < 10:
+            raise ValueError(f"Holiday calendar event {index} has no valid start date.")
+        try:
+            date.fromisoformat(start[:10])
+        except ValueError as err:
+            raise ValueError(
+                f"Holiday calendar event {index} has an invalid start date."
+            ) from err
 
 
 def holiday_dates_from_response(response: object, entity_id: str) -> set[str]:
