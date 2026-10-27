@@ -10,6 +10,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .const import CONF_STOP_NAME, DOMAIN
 from .__init__ import LocalLinkCoordinator
@@ -65,7 +66,7 @@ class LocalLinkBaseSensor(CoordinatorEntity[LocalLinkCoordinator], SensorEntity)
         """Return next departure and minutes until it, rolling to tomorrow if needed."""
         if not self._times:
             return None, None
-        now = datetime.now().astimezone()
+        now = dt_util.now()
         current = now.hour * 60 + now.minute
         parsed = [(int(value[:2]) * 60 + int(value[3:]), value) for value in self._times]
         future = [(minute, value) for minute, value in parsed if minute > current]
