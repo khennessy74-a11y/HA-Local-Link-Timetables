@@ -1,7 +1,6 @@
 """Local Link Timetables integration."""
 
 from datetime import timedelta
-from datetime import date as date_type
 import logging
 
 from homeassistant.config_entries import ConfigEntry
@@ -22,6 +21,7 @@ from .const import (
     SCAN_INTERVAL_MINUTES,
 )
 from .parser import TimetableParseError, parse_departures, parse_holiday_departures, parse_weekday_departures
+from .service_schedule import holiday_dates_from_response
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -99,13 +99,9 @@ class LocalLinkCoordinator(DataUpdateCoordinator[list[str] | dict[int, list[str]
                 blocking=True,
                 return_response=True,
             )
-            calendar_data = (response or {}).get(self.holiday_calendar, {})
-            for event in calendar_data.get("events", []):
-                value = str(event.get("start", ""))[:10]
-                try:
-                    self.holiday_dates.add(date_type.fromisoformat(value).isoformat())
-                except ValueError:
-                    _LOGGER.warning("Ignoring unrecognised holiday calendar date: %s", value)
+            self.holiday_dates = holiday_dates_from_response(
+                response, self.holiday_calendar
+            )
         except Exception as err:  # noqa: BLE001
             _LOGGER.warning(
                 "Could not read configured holiday calendar %s: %s",

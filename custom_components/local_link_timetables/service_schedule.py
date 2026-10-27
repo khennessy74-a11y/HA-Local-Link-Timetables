@@ -4,6 +4,28 @@ from collections.abc import Mapping, Sequence
 from datetime import date, datetime, timedelta
 
 
+def holiday_dates_from_response(response: object, entity_id: str) -> set[str]:
+    """Extract valid ISO dates from a Home Assistant calendar service response."""
+    if not isinstance(response, Mapping):
+        return set()
+    calendar_data = response.get(entity_id, {})
+    if not isinstance(calendar_data, Mapping):
+        return set()
+    events = calendar_data.get("events", [])
+    if not isinstance(events, list):
+        return set()
+    dates: set[str] = set()
+    for event in events:
+        if not isinstance(event, Mapping):
+            continue
+        value = str(event.get("start", ""))[:10]
+        try:
+            dates.add(date.fromisoformat(value).isoformat())
+        except ValueError:
+            continue
+    return dates
+
+
 def next_departure(
     times: Sequence[str] | Mapping[int | str, Sequence[str]],
     now: datetime,

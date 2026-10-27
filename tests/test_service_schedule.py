@@ -16,10 +16,38 @@ assert SPEC is not None and SPEC.loader is not None
 SCHEDULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(SCHEDULE)
 next_departure = SCHEDULE.next_departure
+holiday_dates_from_response = SCHEDULE.holiday_dates_from_response
 
 
 class ServiceScheduleTests(unittest.TestCase):
     """Ensure the next-departure calculation respects configured operating days."""
+
+    def test_calendar_response_extracts_all_day_and_timed_event_dates(self):
+        response = {
+            "calendar.public_holidays": {
+                "events": [
+                    {"start": "2026-12-25"},
+                    {"start": "2027-01-01T00:00:00+00:00"},
+                    {"start": "not-a-date"},
+                    {"summary": "Missing start"},
+                    None,
+                ]
+            }
+        }
+        self.assertEqual(
+            holiday_dates_from_response(response, "calendar.public_holidays"),
+            {"2026-12-25", "2027-01-01"},
+        )
+
+    def test_calendar_response_handles_missing_or_malformed_payload(self):
+        self.assertEqual(holiday_dates_from_response(None, "calendar.holidays"), set())
+        self.assertEqual(holiday_dates_from_response({}, "calendar.holidays"), set())
+        self.assertEqual(
+            holiday_dates_from_response(
+                {"calendar.holidays": {"events": "unexpected"}}, "calendar.holidays"
+            ),
+            set(),
+        )
 
     def test_next_departure_today(self):
         self.assertEqual(

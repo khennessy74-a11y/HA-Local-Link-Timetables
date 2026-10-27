@@ -61,7 +61,10 @@ def _details_schema(
             vol.Optional(CONF_DIRECTION_HINT, default=defaults.get(CONF_DIRECTION_HINT, "")): str,
             vol.Optional(CONF_SERVICE_COLUMN, default=defaults.get(CONF_SERVICE_COLUMN, "")): str,
             vol.Optional(CONF_HOLIDAY_COLUMN, default=defaults.get(CONF_HOLIDAY_COLUMN, "")): str,
-            vol.Optional(CONF_HOLIDAY_CALENDAR): selector.EntitySelector(
+            vol.Optional(
+            CONF_HOLIDAY_CALENDAR,
+            default=defaults.get(CONF_HOLIDAY_CALENDAR, ""),
+        ): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="calendar")
             ),
             vol.Required(
@@ -83,7 +86,10 @@ def _options_schema(defaults: dict) -> vol.Schema:
         vol.Optional(CONF_DIRECTION_HINT, default=defaults.get(CONF_DIRECTION_HINT, "")): str,
         vol.Optional(CONF_SERVICE_COLUMN, default=defaults.get(CONF_SERVICE_COLUMN, "")): str,
         vol.Optional(CONF_HOLIDAY_COLUMN, default=defaults.get(CONF_HOLIDAY_COLUMN, "")): str,
-        vol.Optional(CONF_HOLIDAY_CALENDAR): selector.EntitySelector(
+        vol.Optional(
+            CONF_HOLIDAY_CALENDAR,
+            default=defaults.get(CONF_HOLIDAY_CALENDAR, ""),
+        ): selector.EntitySelector(
             selector.EntitySelectorConfig(domain="calendar")
         ),
         vol.Required(
