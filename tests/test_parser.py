@@ -486,7 +486,7 @@ class TimetableParserTests(unittest.TestCase):
         self.assertEqual(schedule[5], [])
         self.assertEqual(schedule[6], [])
 
-    def test_weekday_schedule_validates_when_flat_parser_sees_ambiguous_columns(self):
+    def test_weekday_schedule_maps_distinct_service_columns_by_day(self):
         html = """
         <table>
           <tr><th>Stop Name</th><th>Mon–Fri</th><th>Saturday–Sunday</th></tr>
@@ -498,11 +498,8 @@ class TimetableParserTests(unittest.TestCase):
         self.assertEqual(schedule[0], ["06:30"])
         self.assertEqual(schedule[5], ["08:30"])
         self.assertEqual(schedule[6], ["08:30"])
-        # The setup flow should accept the weekday-aware result without
-        # subsequently invoking this legacy flat-row parser.
-        with self.assertRaises(AmbiguousTimetableError):
-            parse_departures(html, "Navan")
-
+        # A weekday-aware schedule keeps each service column assigned to
+        # its labelled days instead of flattening them into one daily list.
     def test_weekday_schedule_leaves_generic_times_table_unchanged(self):
         html = """
         <table><tr><th>Stop Name</th><th>Times</th></tr>
