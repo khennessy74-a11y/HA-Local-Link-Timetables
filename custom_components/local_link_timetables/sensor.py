@@ -50,9 +50,10 @@ class LocalLinkBaseSensor(CoordinatorEntity[LocalLinkCoordinator], SensorEntity)
     def __init__(self, coordinator: LocalLinkCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._entry = entry
+        self._config = {**entry.data, **entry.options}
         self._attr_device_info = {
             "identifiers": {(DOMAIN, entry.entry_id)},
-            "name": entry.data.get(CONF_NAME, entry.data[CONF_STOP_NAME]),
+            "name": self._config.get(CONF_NAME, self._config[CONF_STOP_NAME]),
             "manufacturer": "Local Link",
             "entry_type": "service",
         }
@@ -68,7 +69,7 @@ class LocalLinkBaseSensor(CoordinatorEntity[LocalLinkCoordinator], SensorEntity)
         departure, minutes, _service_date = next_departure(
             self._times,
             dt_util.now(),
-            self._entry.data.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
+            self._config.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
         )
         return departure, minutes
 
