@@ -23,6 +23,28 @@ from .const import (
 from .parser import AmbiguousTimetableError, TimetableParseError, parse_departures
 
 
+def _config_schema(defaults: dict) -> vol.Schema:
+    """Build the setup/options form using existing values as defaults."""
+    return vol.Schema(
+        {
+            vol.Required(
+                CONF_URL,
+                default=defaults.get(CONF_URL, "https://locallinklmf.ie/tfi-route-188/"),
+            ): str,
+            vol.Required(CONF_STOP_NAME, default=defaults.get(CONF_STOP_NAME, "")): str,
+            vol.Optional(CONF_DIRECTION_HINT, default=defaults.get(CONF_DIRECTION_HINT, "")): str,
+            vol.Optional(CONF_SERVICE_COLUMN, default=defaults.get(CONF_SERVICE_COLUMN, "")): str,
+            vol.Required(
+                CONF_SERVICE_DAYS,
+                default=defaults.get(CONF_SERVICE_DAYS, DEFAULT_SERVICE_DAYS),
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(options=WEEKDAY_OPTIONS, multiple=True)
+            ),
+            vol.Optional(CONF_NAME, default=defaults.get(CONF_NAME, DEFAULT_NAME)): str,
+        }
+    )
+
+
 def _valid_timetable_url(url: str) -> bool:
     """Only allow public Local Link timetable hosts."""
     parsed = urlparse(url)
@@ -94,24 +116,41 @@ class LocalLinkTimetablesConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
             errors["base"] = error
 
-        schema = vol.Schema(
-            {
-                vol.Required(CONF_URL, default="https://locallinklmf.ie/tfi-route-188/"): str,
-                vol.Required(CONF_STOP_NAME): str,
-                vol.Optional(CONF_DIRECTION_HINT, default=""): str,
-                vol.Optional(CONF_SERVICE_COLUMN, default=""): str,
-                vol.Required(CONF_SERVICE_DAYS, default=DEFAULT_SERVICE_DAYS): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
-                        options=WEEKDAY_OPTIONS,
-                        multiple=True,
-                    )
-                ),
-                vol.Optional(CONF_NAME, default=DEFAULT_NAME): str,
-            }
-        )
+        schema = _config_schema({})
         return self.async_show_form(
             step_id="user",
             data_schema=schema,
+            errors=errors,
+            description_placeholders={
+                "example": "https://locallinklmf.ie/tfi-route-188/"
+            },
+        )
+
+    @staticmethod
+    def async_get_options_flow(config_entry):
+        """Allow users to edit an existing timetable."""
+        return LocalLinkTimetablesOptionsFlow(config_entry)
+
+
+class LocalLinkTimetablesOptionsFlow(config_entries.OptionsFlow):
+    """Edit the URL, stop, direction, service column, and service days."""
+
+    def __init__(self, config_entry) -> None:
+        self.config_entry = config_entry
+
+    async def async_step_init(self, user_input: dict | None = None):
+        """Validate and save changes to an existing timetable."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            error = await _validate_input(self.hass, user_input)
+            if error is None:
+                return self.async_create_entry(title="", data=user_input)
+            errors["base"] = error
+
+        defaults = {**self.config_entry.data, **self.config_entry.options}
+        return self.async_show_form(
+            step_id="init",
+            data_schema=_config_schema(defaults),
             errors=errors,
             description_placeholders={
                 "example": "https://locallinklmf.ie/tfi-route-188/"
