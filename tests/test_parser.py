@@ -136,8 +136,8 @@ class TimetableParserTests(unittest.TestCase):
           </tr>
           <tr>
             <td>Kentstown</td><td>Kentstown Church</td><td>137851</td><td>P/S</td>
-            <td>06:57</td><td>08:23</td><td>10:39</td><td>12:39</td><td>14:29</td>
-            <td>16:29</td><td>19:00</td><td>20:12</td>
+            <td>06:57</td><td>08:23</td><td>11:26</td><td>13:26</td><td>15:20</td>
+            <td>17:20</td><td>19:36</td><td>20:42</td>
           </tr>
         </table>
         """
@@ -150,7 +150,7 @@ class TimetableParserTests(unittest.TestCase):
                 html, "Kentstown Church",
                 service_column_hint="Monday–Sunday",
             ),
-            ["10:39", "12:39", "14:29", "16:29", "19:00", "20:12"],
+            ["11:26", "13:26", "15:20", "17:20", "19:36", "20:42"],
         )
 
     def test_service_column_header_does_not_leak_between_tables(self):
