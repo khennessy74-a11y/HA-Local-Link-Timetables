@@ -44,12 +44,16 @@ class _TableRowParser(HTMLParser):
         self._heading_parts: list[str] = []
         self._current_heading = ""
         self._table_depth = 0
+        self._table_serial = 0
+        self._current_table_id = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         tag = tag.lower()
         attr_map = dict(attrs)
         if tag == "table":
             self._table_depth += 1
+            self._table_serial += 1
+            self._current_table_id = self._table_serial
         if tag == "tr":
             if self._row_depth == 0:
                 self._parts = []
@@ -87,6 +91,7 @@ class _TableRowParser(HTMLParser):
                     )
                     self.table_rows.append({
                         "heading": self._current_heading,
+                        "table_id": self._current_table_id,
                         "cells": cells,
                         "is_header": header,
                     })
@@ -143,7 +148,7 @@ def parse_departures(
     matches: list[list[str]] = []
 
     if column_hint:
-        for table_row in parser.table_rows:
+        for row_position, table_row in enumerate(parser.table_rows):
             cells = table_row["cells"]
             if table_row["is_header"]:
                 continue
@@ -153,10 +158,11 @@ def parse_departures(
                 continue
             # Locate the header from the same table section. Search backwards
             # for the most recent service header before this stop row.
-            row_position = parser.table_rows.index(table_row)
             header_rows = [
                 row for row in parser.table_rows[:row_position]
-                if row["is_header"] and row["heading"] == table_row["heading"]
+                if row["is_header"]
+                and row["table_id"] == table_row["table_id"]
+                and row["heading"] == table_row["heading"]
             ]
             if not header_rows:
                 continue
