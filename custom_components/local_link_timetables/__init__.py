@@ -26,11 +26,12 @@ class LocalLinkCoordinator(DataUpdateCoordinator[list[str]]):
     """Fetch and parse departures for a configured stop."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
-        self.url = entry.data[CONF_URL]
-        self.stop_name = entry.data[CONF_STOP_NAME]
-        self.direction_hint = entry.data.get(CONF_DIRECTION_HINT, "")
-        self.service_column = entry.data.get(CONF_SERVICE_COLUMN, "")
-        self.display_name = entry.data.get(CONF_NAME, self.stop_name)
+        self.config = {**entry.data, **entry.options}
+        self.url = self.config[CONF_URL]
+        self.stop_name = self.config[CONF_STOP_NAME]
+        self.direction_hint = self.config.get(CONF_DIRECTION_HINT, "")
+        self.service_column = self.config.get(CONF_SERVICE_COLUMN, "")
+        self.display_name = self.config.get(CONF_NAME, self.stop_name)
         self.session = async_get_clientsession(hass)
         super().__init__(
             hass,
