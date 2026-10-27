@@ -16,5 +16,10 @@ jobs:
           python-version: "3.12"
       - name: Compile integration Python files
         run: python -m compileall -q custom_components
+      - name: Validate integration JSON files
+        run: |
+          python -m json.tool custom_components/local_link_timetables/manifest.json > /dev/null
+          python -m json.tool custom_components/local_link_timetables/strings.json > /dev/null
+          python -m json.tool hacs.json > /dev/null
       - name: Run timetable parser tests
         run: python -m unittest discover -s tests -v
