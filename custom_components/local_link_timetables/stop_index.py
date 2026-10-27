@@ -4,7 +4,7 @@ from html.parser import HTMLParser
 import re
 import unicodedata
 
-_TIME_RE = re.compile(r"(?<!\d)(?:[01]?\d|2[0-3]):[0-5]\d(?!\d)")
+_TIME_RE = re.compile(r"(?:[01]?\d|2[0-3]):[0-5]\d")
 _SKIP_LABELS = {
     "stop", "stop name", "stop location", "stop number", "stop no.",
     "times", "time", "depart", "departure", "return", "restriction",
