@@ -16,7 +16,7 @@ This is an independent community project and is not affiliated with or endorsed 
 - [x] Preserve nested route headings and combine separate service tables only when they share a selected direction and Service 1/2/3 structure
 - [x] Next departure, minutes-until, and full-departures sensors
 - [x] Unit tests for both known Route 188 stop rows and duplicate-stop selection
-- [x] GitHub Actions parser test workflow
+- [x] GitHub Actions compile, metadata, and test workflow
 - [ ] Verify live Route 188 page structure and both directions
 - [x] Add representative parser tests for Route 177 grouped weekday/holiday columns, Route 189 weekday/holiday columns, Route 192 simple Times tables, and Route 195 outbound/return layouts
 - [ ] Validate extracted times against every live route page before claiming broad route compatibility
@@ -27,8 +27,10 @@ This is an independent community project and is not affiliated with or endorsed 
 - [x] Support an explicitly selected public-holiday timetable column and optional Home Assistant calendar date overrides
 - [ ] Verify holiday-calendar service compatibility on a live Home Assistant instance
 - [x] Discover route URLs from the published Local Link timetable index during setup
-- [ ] Discover stop names from the selected route page so users do not have to type a stop name
+- [x] Discover stop names from the selected route page, with manual entry fallback
 - [x] Add redacted Home Assistant diagnostics for timetable and coordinator troubleshooting
+- [x] Add regression coverage for diagnostic redaction fields
+- [ ] Run integration tests in a real Home Assistant instance and verify HACS validation
 - [ ] Review error handling and HACS release readiness
 
 ## Development installation
@@ -63,16 +65,19 @@ The source timetable is fetched every 15 minutes. A failed fetch or parse is rep
 - If the same stop appears in multiple rows with different times, setup now fails safely and asks for a direction/section hint. The direction hint can match the stop row or its section heading. The optional service-column hint should match the published header text exactly enough to identify the intended column; if a route has grouped or unusual headers, verify the extracted departures before relying on them.
 - Route and stop selection are discovered from the published timetable index and selected route page where possible. If route discovery fails, the form falls back to a manual URL field; if stop discovery fails, you can type the stop name manually.
 - Service days are currently selected manually for one configured list of departure times. When the service-column field is left blank, the integration now combines columns whose published weekday headings apply to each ordinary weekday (for example, Route 188's Mon–Sat journey group plus its Monday–Sunday group). A manual service-column heading still overrides this behaviour. Public-holiday overrides are optional and must be configured explicitly: select a separate column whose heading mentions public holidays, select a dedicated calendar containing only public holidays, and select the ordinary service column as well. The integration checks calendar events over the next 15 days during its normal refresh. If the calendar service is unavailable or returns malformed events, the integration logs a warning and marks the timetable update unavailable rather than showing ordinary weekday departures that may be wrong on a public holiday. It recovers on a later successful refresh. Calendar behaviour still requires live Home Assistant verification. Do not use a general family/events calendar, because every event date in the selected calendar is treated as a public holiday.
+- Diagnostics redact the timetable URL, stop name, direction hint, friendly name, and selected holiday calendar. Diagnostics tests use lightweight Home Assistant test doubles; they do not replace validation against a running Home Assistant instance.
 - Timetable data may change on the provider's website. Check the published timetable before travelling.
 
 ## Tests
 
-Parser tests use Python's standard `unittest` runner and do not require a Home Assistant installation:
+The automated tests use Python's standard `unittest` runner and do not require a Home Assistant installation:
 
 ```bash
 python -m unittest discover -s tests -v
 ```
 
+The GitHub Actions workflow also compiles the integration and validates its JSON metadata. It does not currently boot Home Assistant or exercise the integration against a live instance.
+
 ## HACS
 
-HACS release metadata is included, but the project should not be treated as production-ready or added to the default HACS store until the remaining route compatibility and service-day tests are complete.
+HACS release metadata is included, but the project should not be treated as production-ready or added to the default HACS store until live route compatibility, Home Assistant lifecycle, calendar service behaviour, and HACS validation have been verified.

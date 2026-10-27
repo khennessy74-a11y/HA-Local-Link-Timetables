@@ -4,9 +4,23 @@ from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import CONF_HOLIDAY_CALENDAR, CONF_STOP_NAME, CONF_URL, DOMAIN
+from .const import (
+    CONF_DIRECTION_HINT,
+    CONF_HOLIDAY_CALENDAR,
+    CONF_NAME,
+    CONF_STOP_NAME,
+    CONF_URL,
+    DOMAIN,
+)
 
-TO_REDACT = {CONF_HOLIDAY_CALENDAR, CONF_STOP_NAME, CONF_URL}
+# Redact both the underlying values and labels that can repeat stop details.
+TO_REDACT = {
+    CONF_DIRECTION_HINT,
+    CONF_HOLIDAY_CALENDAR,
+    CONF_NAME,
+    CONF_STOP_NAME,
+    CONF_URL,
+}
 
 
 async def async_get_config_entry_diagnostics(
